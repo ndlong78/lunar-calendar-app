@@ -60,7 +60,7 @@ lunar-calendar-app/
 
 ### 1. Clone Project
 ```bash
-git clone https://github.com/yourusername/lunar-calendar-app.git
+git clone https://github.com/ndlong78/lunar-calendar-app.git
 cd lunar-calendar-app
 ```
 
@@ -388,7 +388,7 @@ MIT License - Xem LICENSE file
 ## 📧 Contact
 
 - Email: your-email@example.com
-- GitHub: [@yourusername](https://github.com/yourusername)
+- GitHub: [@ndlong78](https://github.com/ndlong78)
 
 ---
 
