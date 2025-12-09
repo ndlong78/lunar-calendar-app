@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Settings, Users, Calendar, BarChart3, LogOut, Edit, Trash2, Plus, Search, Filter } from 'lucide-react';
+import React, { useState } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Settings, Users, Calendar, BarChart3, LogOut, Edit, Trash2, Plus, Search } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const [currentUser, setCurrentUser] = useState({ name: 'Admin User', email: 'admin@lunar.com', role: 'Admin' });
+  const [currentUser] = useState({ name: 'Admin User', email: 'admin@lunar.com', role: 'Admin' });
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [users, setUsers] = useState([
+  const [users] = useState([
     { id: 1, name: 'Nguyễn Văn A', email: 'nguyena@example.com', joinDate: '2025-01-15', favorites: 12, status: 'Active' },
     { id: 2, name: 'Trần Thị B', email: 'tranb@example.com', joinDate: '2025-01-20', favorites: 8, status: 'Active' },
     { id: 3, name: 'Lê Văn C', email: 'levan@example.com', joinDate: '2025-01-10', favorites: 5, status: 'Inactive' },
@@ -20,7 +20,6 @@ export default function AdminDashboard() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [newHoliday, setNewHoliday] = useState({ name_vi: '', name_en: '', date: '', type: 'solar' });
-  const [editingHoliday, setEditingHoliday] = useState(null);
   const [language, setLanguage] = useState('vi');
 
   // Dashboard Stats
@@ -70,13 +69,8 @@ export default function AdminDashboard() {
     setHolidays(holidays.filter(h => h.id !== id));
   };
 
-  const handleUpdateHoliday = (id) => {
-    setHolidays(holidays.map(h => h.id === id ? editingHoliday : h));
-    setEditingHoliday(null);
-  };
-
   const handleToggleHoliday = (id) => {
-    setHolidays(holidays.map(h => 
+    setHolidays(holidays.map(h =>
       h.id === id ? { ...h, active: !h.active } : h
     ));
   };
