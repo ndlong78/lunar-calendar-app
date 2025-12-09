@@ -1,16 +1,76 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Globe, Heart, LogOut, LogIn, Save } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, Globe, Heart, LogOut, LogIn } from 'lucide-react';
+import { authService } from '../services/authService';
+import { calendarService } from '../services/calendarService';
 
-export default function LunarCalendarApp() {
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 11, 9));
+export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [language, setLanguage] = useState('vi');
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [user, setUser] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [favorites, setFavorites] = useState([]);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [formData, setFormData] = useState({ email: '', password: '', name: '' });
-  const [activeTab, setActiveTab] = useState('calendar');
+  const [holidays, setHolidays] = useState([]);
+  const [selectedDetails, setSelectedDetails] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  useEffect(() => {
+    const loadHolidays = async () => {
+      try {
+        const { data } = await calendarService.getHolidays();
+        setHolidays(data.holidays || []);
+      } catch (error) {
+        console.error('Không thể tải ngày lễ', error);
+      }
+    };
+
+    loadHolidays();
+  }, []);
+
+  useEffect(() => {
+    const loadFavorites = async () => {
+      if (!user) {
+        setFavorites([]);
+        return;
+      }
+
+      try {
+        const { data } = await calendarService.getFavorites();
+        setFavorites(data.favorites || []);
+      } catch (error) {
+        console.error('Không thể tải danh sách yêu thích', error);
+      }
+    };
+
+    loadFavorites();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchDetails = async () => {
+      if (!selectedDate) return;
+
+      setLoadingDetails(true);
+      try {
+        const dateStr = selectedDate.toISOString().slice(0, 10);
+        const [{ data: conversion }, { data: zodiacInfo }] = await Promise.all([
+          calendarService.convertDate(dateStr),
+          calendarService.getZodiacInfo(selectedDate.getFullYear())
+        ]);
+
+        setSelectedDetails({
+          ...conversion,
+          zodiacInfo
+        });
+      } catch (error) {
+        console.error('Không thể lấy thông tin ngày', error);
+      } finally {
+        setLoadingDetails(false);
+      }
+    };
+
+    fetchDetails();
+  }, [selectedDate]);
 
   // Zodiac Animals
   const ZODIAC_ANIMALS = ['Tý', 'Sửu', 'Dần', 'Mão', 'Thìn', 'Tỵ', 'Ngọ', 'Mùi', 'Thân', 'Dậu', 'Tuất', 'Hợi'];
@@ -30,34 +90,6 @@ export default function LunarCalendarApp() {
     { name: 'Bảo Bình', vi: 'Bảo Bình', en: 'Aquarius', dates: '1/20-2/18', element: 'Không khí', characteristic: 'Độc lập, sáng tạo' },
     { name: 'Song Cá', vi: 'Song Cá', en: 'Pisces', dates: '2/19-3/20', element: 'Nước', characteristic: 'Mơ mộng, giàu lòng trắc ẩn' }
   ];
-
-  // Vietnamese Holidays
-  const VIETNAMESE_HOLIDAYS = {
-    '1-1': { vi: 'Tết Dương Lịch', en: 'New Year', type: 'solar' },
-    '2-10': { vi: 'Ngày Lao Động', en: 'Labor Day', type: 'solar' },
-    '4-30': { vi: 'Ngày Giải Phóng', en: 'Reunification Day', type: 'solar' },
-    '9-2': { vi: 'Ngày Quốc Khánh', en: 'National Day', type: 'solar' },
-    'lunar-1-1': { vi: 'Tết Nguyên Đán', en: 'Lunar New Year', type: 'lunar' },
-    'lunar-1-15': { vi: 'Tết Nguyên Tiêu', en: 'Full Moon Festival', type: 'lunar' },
-    'lunar-3-10': { vi: 'Giỗ Tổ Hùng Vương', en: 'Hung Kings Festival', type: 'lunar' },
-    'lunar-8-15': { vi: 'Tết Trung Thu', en: 'Mid-Autumn Festival', type: 'lunar' },
-  };
-
-  // Auspicious/Inauspicious hours (Giờ Hoàng Đạo/Hắc Đạo)
-  const AUSPICIOUS_HOURS = {
-    0: { vi: 'Tý (23-1)', en: 'Rat (11pm-1am)', auspicious: true },
-    1: { vi: 'Sửu (1-3)', en: 'Ox (1am-3am)', auspicious: false },
-    2: { vi: 'Dần (3-5)', en: 'Tiger (3am-5am)', auspicious: true },
-    3: { vi: 'Mão (5-7)', en: 'Rabbit (5am-7am)', auspicious: false },
-    4: { vi: 'Thìn (7-9)', en: 'Dragon (7am-9am)', auspicious: true },
-    5: { vi: 'Tỵ (9-11)', en: 'Snake (9am-11am)', auspicious: false },
-    6: { vi: 'Ngọ (11-13)', en: 'Horse (11am-1pm)', auspicious: true },
-    7: { vi: 'Mùi (13-15)', en: 'Goat (1pm-3pm)', auspicious: false },
-    8: { vi: 'Thân (15-17)', en: 'Monkey (3pm-5pm)', auspicious: true },
-    9: { vi: 'Dậu (17-19)', en: 'Rooster (5pm-7pm)', auspicious: false },
-    10: { vi: 'Tuất (19-21)', en: 'Dog (7pm-9pm)', auspicious: true },
-    11: { vi: 'Hợi (21-23)', en: 'Pig (9pm-11pm)', auspicious: false }
-  };
 
   // Improved lunar calendar calculation
   const solarToLunar = (date) => {
@@ -98,21 +130,34 @@ export default function LunarCalendarApp() {
     return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
   };
 
+  const formatDateKey = (date) => date.toISOString().slice(0, 10);
+
+  const getHolidayForDate = (date) => {
+    const solarKey = `${date.getMonth() + 1}-${date.getDate()}`;
+    const lunar = solarToLunar(date);
+    const lunarKey = `${lunar.month}-${lunar.day}`;
+
+    return holidays.find(h =>
+      (h.type === 'solar' && h.solarDate === solarKey) ||
+      (h.type === 'lunar' && h.lunarDate === lunarKey)
+    );
+  };
+
   const getZodiacSign = (date) => {
     const month = date.getMonth() + 1;
     const day = date.getDate();
     const dateNum = month * 100 + day;
-    
+
     for (let sign of ZODIAC_SIGNS) {
-      const [m1, d1, m2, d2] = sign.dates.split('-').map(x => {
+      const [start, end] = sign.dates.split('-').map(x => {
         const [mm, dd] = x.split('/');
         return parseInt(mm) * 100 + parseInt(dd);
       }).sort((a, b) => a - b);
-      
-      if (m1 <= m2) {
-        if (dateNum >= m1 && dateNum <= m2) return sign;
+
+      if (start <= end) {
+        if (dateNum >= start && dateNum <= end) return sign;
       } else {
-        if (dateNum >= m1 || dateNum <= m2) return sign;
+        if (dateNum >= start || dateNum <= end) return sign;
       }
     }
     return ZODIAC_SIGNS[0];
@@ -201,18 +246,33 @@ export default function LunarCalendarApp() {
 
   const handleAuth = async (e) => {
     e.preventDefault();
-    // Simulated auth - in real app, call backend API
-    if (authMode === 'login') {
-      setUser({ email: formData.email, name: 'User' });
-    } else {
-      setUser({ email: formData.email, name: formData.name });
+    try {
+      if (authMode === 'login') {
+        const { data } = await authService.login(formData.email, formData.password);
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setUser(data.user);
+        setIsAdmin?.(data.user.role === 'admin');
+      } else {
+        const { data } = await authService.register(formData.name, formData.email, formData.password);
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setUser(data.user);
+        setIsAdmin?.(data.user.role === 'admin');
+      }
+
+      setFormData({ email: '', password: '', name: '' });
+      setShowAuthModal(false);
+    } catch (error) {
+      const message = error.response?.data?.message || 'Đăng nhập/đăng ký thất bại';
+      alert(message);
     }
-    setFormData({ email: '', password: '', name: '' });
-    setShowAuthModal(false);
   };
 
   const handleLogout = () => {
+    authService.logout();
     setUser(null);
+    setIsAdmin?.(false);
     setFavorites([]);
   };
 
@@ -221,16 +281,36 @@ export default function LunarCalendarApp() {
       alert(t.loginRequired);
       return;
     }
-    const dateStr = date.toISOString().split('T')[0];
-    setFavorites(prev => 
-      prev.includes(dateStr) 
-        ? prev.filter(d => d !== dateStr)
-        : [...prev, dateStr]
-    );
+
+    const dateKey = formatDateKey(date);
+    const existing = favorites.find(fav => formatDateKey(new Date(fav.date)) === dateKey);
+
+    const updateFavorites = async () => {
+      try {
+        if (existing) {
+          await calendarService.deleteFavorite(existing._id);
+          setFavorites(prev => prev.filter(f => f._id !== existing._id));
+        } else {
+          const payload = {
+            date: dateKey,
+            solarDate: selectedDetails?.solar?.formatted || `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`,
+            lunarDate: selectedDetails?.lunar?.formatted || ''
+          };
+          const { data } = await calendarService.addFavorite(payload);
+          setFavorites(prev => [data.favorite, ...prev]);
+        }
+      } catch (error) {
+        console.error('Không thể cập nhật yêu thích', error);
+        alert('Không thể cập nhật yêu thích');
+      }
+    };
+
+    updateFavorites();
   };
 
   const isFavorite = (date) => {
-    return favorites.includes(date.toISOString().split('T')[0]);
+    const dateKey = formatDateKey(date);
+    return favorites.some(fav => formatDateKey(new Date(fav.date)) === dateKey);
   };
 
   const renderCalendar = () => {
@@ -244,342 +324,253 @@ export default function LunarCalendarApp() {
 
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-      const dateStr = `${date.getMonth() + 1}-${day}`;
       const isToday = new Date().toDateString() === date.toDateString();
       const isSelected = selectedDate?.toDateString() === date.toDateString();
-      const holiday = VIETNAMESE_HOLIDAYS[dateStr];
-      
+
       const lunar = solarToLunar(date);
-      const lunarDateStr = `lunar-${lunar.month}-${lunar.day}`;
-      const lunarHoliday = VIETNAMESE_HOLIDAYS[lunarDateStr];
+      const holiday = getHolidayForDate(date);
       const isFav = isFavorite(date);
 
       days.push(
         <div
           key={day}
           onClick={() => setSelectedDate(date)}
-          className={`p-2 border rounded cursor-pointer text-center transition relative ${
-            isToday ? 'bg-red-100 border-red-500' : isSelected ? 'bg-blue-100 border-blue-500' : 'border-gray-300 hover:bg-gray-100'
-          }`}
+          className={`rounded-lg border text-center py-3 px-2 cursor-pointer transition relative bg-white ${
+            isSelected
+              ? 'border-red-500 text-red-700 shadow-sm'
+              : 'border-gray-200 hover:border-red-200 hover:shadow-sm'
+          } ${isToday ? 'ring-2 ring-red-200' : ''} ${holiday ? 'bg-red-50' : ''}`}
         >
-          <div className="flex justify-between items-start">
-            <div className="font-bold text-sm">{day}</div>
+          <div className="flex justify-between items-start text-sm font-semibold">
+            <span>{day}</span>
             {isFav && <Heart size={12} className="fill-red-500 text-red-500" />}
           </div>
-          <div className="text-xs text-gray-600">
+          <div className="text-xs text-gray-600 mt-1">
             {lunar.day}/{lunar.month}
           </div>
-          {(holiday || lunarHoliday) && (
-            <div className="text-xs font-semibold text-red-600 mt-1">
-              {holiday ? holiday[language] : lunarHoliday[language]}
+          {holiday && (
+            <div className="text-[11px] font-semibold text-red-600 mt-1 leading-tight">
+              {language === 'vi' ? holiday.name_vi : holiday.name_en}
             </div>
           )}
-        </div>
-      );
-    }
+    </div>
+  );
+}
 
     return days;
   };
 
-  const selectedLunar = selectedDate ? solarToLunar(selectedDate) : null;
-  const selectedZodiac = selectedDate ? ZODIAC_ANIMALS[selectedDate.getFullYear() % 12] : null;
+  const selectedLunar = selectedDetails?.lunar || (selectedDate ? solarToLunar(selectedDate) : null);
+  const selectedZodiac = selectedDetails?.zodiacAnimal || (selectedDate ? ZODIAC_ANIMALS[selectedDate.getFullYear() % 12] : null);
   const selectedZodiacSign = selectedDate ? getZodiacSign(selectedDate) : null;
+  const selectedZodiacInfo = selectedDetails?.zodiacInfo;
   const isFav = selectedDate ? isFavorite(selectedDate) : false;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-yellow-50 to-orange-50 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl md:text-4xl font-bold text-red-700">{t.title}</h1>
-            <div className="flex gap-2">
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-red-700 text-white shadow">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
+          <h1 className="text-xl md:text-2xl font-semibold">{t.title}</h1>
+          <div className="flex items-center gap-2">
+            {user ? (
               <button
-                onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')}
-                className="flex items-center gap-2 bg-red-600 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm"
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-sm"
               >
-                <Globe size={18} />
-                {language === 'vi' ? 'EN' : 'VN'}
+                <LogOut size={18} />
+                {t.logout}
               </button>
-              {user ? (
+            ) : (
+              <button
+                onClick={() => { setShowAuthModal(true); setAuthMode('login'); }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-sm"
+              >
+                <LogIn size={18} />
+                {t.login}
+              </button>
+            )}
+            <button
+              onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')}
+              className="flex items-center gap-2 bg-white text-red-700 px-3 md:px-4 py-2 rounded-lg hover:bg-gray-100 transition text-sm font-semibold"
+            >
+              <Globe size={18} />
+              {language === 'vi' ? 'English' : 'Tiếng Việt'}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto px-4 py-8 space-y-6">
+        <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <button onClick={handlePrevMonth} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition">
+              <ChevronLeft size={22} />
+            </button>
+            <h2 className="text-2xl font-bold text-red-700">
+              {t.monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+            </h2>
+            <button onClick={handleNextMonth} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition">
+              <ChevronRight size={22} />
+            </button>
+          </div>
+
+          <div className="flex justify-center mb-4">
+            <button
+              onClick={handleToday}
+              className="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition font-semibold"
+            >
+              {t.today}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-7 gap-2 mb-2">
+            {t.dayNames.map(day => (
+              <div key={day} className="text-center font-semibold text-white bg-red-600 py-2 rounded-lg text-sm">
+                {day}
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-7 gap-2">
+            {renderCalendar()}
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-red-700">{language === 'vi' ? 'Thông Tin Chi Tiết' : 'Detailed Information'}</h3>
+              {selectedDate && (
                 <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 bg-gray-600 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm"
+                  onClick={() => toggleFavorite(selectedDate)}
+                  className={`px-3 py-2 rounded-lg text-sm font-semibold border transition ${
+                    isFav ? 'border-gray-300 text-gray-700 bg-gray-50' : 'border-red-500 text-red-700 hover:bg-red-50'
+                  }`}
                 >
-                  <LogOut size={18} />
-                  {t.logout}
-                </button>
-              ) : (
-                <button
-                  onClick={() => { setShowAuthModal(true); setAuthMode('login'); }}
-                  className="flex items-center gap-2 bg-blue-600 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm"
-                >
-                  <LogIn size={18} />
-                  {t.login}
+                  {isFav ? t.removeFavorite : t.addFavorite}
                 </button>
               )}
             </div>
-          </div>
-          {user && <p className="text-sm text-gray-600">👋 {t.email}: {user.email}</p>}
-        </div>
 
-        {/* Auth Modal */}
-        {showAuthModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h2 className="text-2xl font-bold mb-4">{authMode === 'login' ? t.login : t.register}</h2>
-              <form onSubmit={handleAuth} className="space-y-4">
-                {authMode === 'register' && (
-                  <input
-                    type="text"
-                    placeholder={t.name}
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full border rounded px-3 py-2"
-                  />
-                )}
-                <input
-                  type="email"
-                  placeholder={t.email}
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  className="w-full border rounded px-3 py-2"
-                />
-                <input
-                  type="password"
-                  placeholder={t.password}
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                  className="w-full border rounded px-3 py-2"
-                />
-                <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-                  {authMode === 'login' ? t.login : t.register}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
-                  className="w-full text-blue-600 hover:underline"
-                >
-                  {authMode === 'login' ? t.register : t.login}
-                </button>
-              </form>
-              <button
-                onClick={() => setShowAuthModal(false)}
-                className="mt-4 w-full bg-gray-300 text-gray-700 py-2 rounded hover:bg-gray-400"
-              >
-                {language === 'vi' ? 'Đóng' : 'Close'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6">
-          {['calendar', 'zodiac', 'fengshui'].map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-lg font-semibold transition ${
-                activeTab === tab
-                  ? 'bg-red-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              {t[tab]}
-            </button>
-          ))}
-        </div>
-
-        {/* Calendar Tab */}
-        {activeTab === 'calendar' && (
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 bg-white rounded-lg shadow-lg p-6">
-              <div className="flex items-center justify-between mb-6">
-                <button onClick={handlePrevMonth} className="p-2 hover:bg-gray-200 rounded transition">
-                  <ChevronLeft size={24} />
-                </button>
-                <h2 className="text-2xl font-bold">
-                  {t.monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-                </h2>
-                <button onClick={handleNextMonth} className="p-2 hover:bg-gray-200 rounded transition">
-                  <ChevronRight size={24} />
-                </button>
-              </div>
-
-              <button
-                onClick={handleToday}
-                className="mb-4 w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition"
-              >
-                {t.today}
-              </button>
-
-              <div className="grid grid-cols-7 gap-1 mb-4">
-                {t.dayNames.map(day => (
-                  <div key={day} className="text-center font-bold text-sm text-gray-600 py-2">
-                    {day}
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-7 gap-1">
-                {renderCalendar()}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-lg p-6 h-fit">
-              <h3 className="text-xl font-bold mb-4 text-red-700">{language === 'vi' ? 'Thông Tin' : 'Details'}</h3>
-
-              {selectedDate ? (
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-gray-600">{t.solar}</p>
-                    <p className="text-lg font-bold">
-                      {selectedDate.getDate()}/{selectedDate.getMonth() + 1}/{selectedDate.getFullYear()}
+            {loadingDetails ? (
+              <p className="text-gray-500">{language === 'vi' ? 'Đang tải dữ liệu...' : 'Loading data...'}</p>
+            ) : selectedDate ? (
+              <div className="space-y-3 text-sm text-gray-700">
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg border bg-gray-50">
+                    <p className="text-gray-500 text-xs uppercase tracking-wide">{t.solar}</p>
+                    <p className="text-base font-semibold text-gray-800">
+                      {selectedDetails?.solar?.formatted || `${selectedDate.getDate()}/${selectedDate.getMonth() + 1}/${selectedDate.getFullYear()}`}
                     </p>
                   </div>
-
-                  <div>
-                    <p className="text-sm text-gray-600">{t.lunar}</p>
-                    <p className="text-lg font-bold">
+                  <div className="p-3 rounded-lg border bg-gray-50">
+                    <p className="text-gray-500 text-xs uppercase tracking-wide">{t.lunar}</p>
+                    <p className="text-base font-semibold text-gray-800">
                       {selectedLunar?.day}/{selectedLunar?.month}/{selectedLunar?.year}
                     </p>
                   </div>
-
-                  <div>
-                    <p className="text-sm text-gray-600">{t.zodiacSign}</p>
-                    <p className="text-lg font-bold text-red-600">{selectedZodiac}</p>
-                  </div>
-
-                  <button
-                    onClick={() => toggleFavorite(selectedDate)}
-                    className={`w-full py-2 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
-                      isFav
-                        ? 'bg-red-600 text-white hover:bg-red-700'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    <Heart size={18} className={isFav ? 'fill-white' : ''} />
-                    {isFav ? t.removeFavorite : t.addFavorite}
-                  </button>
                 </div>
-              ) : (
-                <p className="text-gray-500">{t.selectDate}</p>
-              )}
-            </div>
-          </div>
-        )}
 
-        {/* Zodiac Tab */}
-        {activeTab === 'zodiac' && (
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-2xl font-bold mb-4 text-red-700">{language === 'vi' ? '12 Cung Mệnh' : 'Zodiac Signs'}</h3>
-              <div className="grid grid-cols-2 gap-4">
-                {ZODIAC_SIGNS.map((sign, idx) => (
-                  <div key={idx} className="border rounded p-4 hover:shadow-lg transition cursor-pointer">
-                    <p className="font-bold text-red-600">{sign[language]}</p>
-                    <p className="text-sm text-gray-600">{sign.dates}</p>
-                    <p className="text-xs text-gray-500 mt-2">{sign.element}</p>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg border bg-gray-50">
+                    <p className="text-gray-500 text-xs uppercase tracking-wide">{t.zodiacYear}</p>
+                    <p className="text-base font-semibold text-gray-800">{selectedDetails?.zodiacAnimal || selectedZodiac}</p>
+                    {selectedZodiacInfo?.element && (
+                      <p className="text-xs text-gray-500 mt-1">{selectedZodiacInfo.element}</p>
+                    )}
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {selectedDate && selectedZodiacSign && (
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <h3 className="text-2xl font-bold mb-4 text-red-700">{language === 'vi' ? 'Cung Mệnh Của Bạn' : 'Your Zodiac Sign'}</h3>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-gray-600">{language === 'vi' ? 'Ngày Sinh' : 'Birth Date'}</p>
-                    <p className="text-lg font-bold">{selectedDate.getDate()}/{selectedDate.getMonth() + 1}/{selectedDate.getFullYear()}</p>
-                  </div>
-                  <div className="border-t pt-4">
-                    <p className="text-xl font-bold text-red-600 mb-2">{selectedZodiacSign[language]}</p>
-                    <div className="bg-red-50 p-4 rounded">
-                      <p className="text-sm mb-2"><strong>{t.element}:</strong> {selectedZodiacSign.element}</p>
-                      <p className="text-sm"><strong>{t.characteristic}:</strong> {selectedZodiacSign.characteristic}</p>
-                    </div>
-                  </div>
-                  <div className="bg-yellow-50 p-4 rounded">
-                    <p className="text-sm text-gray-700">
-                      {language === 'vi'
-                        ? `${selectedZodiacSign.vi} là cung mệnh với ${selectedZodiacSign.element}. Những người sinh dưới cung này thường có tính: ${selectedZodiacSign.characteristic}.`
-                        : `${selectedZodiacSign.en} is a zodiac sign with ${selectedZodiacSign.element} element. People born under this sign typically have: ${selectedZodiacSign.characteristic}.`
-                      }
-                    </p>
+                  <div className="p-3 rounded-lg border bg-gray-50">
+                    <p className="text-gray-500 text-xs uppercase tracking-wide">{t.zodiacSignWestern}</p>
+                    <p className="text-base font-semibold text-gray-800">{selectedZodiacSign?.[language] || selectedZodiacSign?.name}</p>
+                    {selectedZodiacSign && (
+                      <p className="text-xs text-gray-500 mt-1">{selectedZodiacSign.element}</p>
+                    )}
                   </div>
                 </div>
+
+                {selectedDetails?.notes && (
+                  <div className="p-3 rounded-lg border bg-gray-50">
+                    <p className="text-gray-500 text-xs uppercase tracking-wide">{language === 'vi' ? 'Ghi chú' : 'Notes'}</p>
+                    <p className="text-sm text-gray-700">{selectedDetails.notes}</p>
+                  </div>
+                )}
               </div>
+            ) : (
+              <p className="text-gray-500">{t.selectDate}</p>
             )}
           </div>
-        )}
 
-        {/* Feng Shui Tab */}
-        {activeTab === 'fengshui' && selectedDate && (
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-2xl font-bold mb-4 text-red-700">{t.auspiciousHours}</h3>
-              <div className="space-y-3">
-                {Object.entries(AUSPICIOUS_HOURS).map(([idx, hour]) => (
-                  <div 
-                    key={idx}
-                    className={`p-3 rounded border-l-4 ${
-                      hour.auspicious 
-                        ? 'bg-green-50 border-green-500' 
-                        : 'bg-red-50 border-red-500'
-                    }`}
-                  >
-                    <p className="font-semibold">{hour[language]}</p>
-                    <p className="text-sm text-gray-600">
-                      {hour.auspicious ? '🟢 ' + (language === 'vi' ? 'Hoàng Đạo' : 'Auspicious') : '🔴 ' + (language === 'vi' ? 'Hắc Đạo' : 'Inauspicious')}
+          <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
+            <h3 className="text-lg font-semibold text-red-700 mb-3">{language === 'vi' ? 'Những Ngày Lễ Chính' : 'Key Holidays'}</h3>
+            {holidays.length ? (
+              <ul className="space-y-3">
+                {holidays.map((holiday) => (
+                  <li key={holiday._id || holiday.name_vi} className="p-3 rounded-lg border bg-gray-50">
+                    <p className="font-semibold text-gray-800">{language === 'vi' ? holiday.name_vi : holiday.name_en}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {holiday.type === 'solar'
+                        ? `${t.solar}: ${holiday.solarDate}`
+                        : `${t.lunar}: ${holiday.lunarDate}`}
                     </p>
-                  </div>
+                  </li>
                 ))}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-2xl font-bold mb-4 text-red-700">{t.fengShuiTips}</h3>
-              <div className="space-y-4">
-                <div className="bg-blue-50 p-4 rounded">
-                  <p className="font-semibold text-blue-700 mb-2">{t.goodDirections}</p>
-                  <p className="text-sm">
-                    {language === 'vi'
-                      ? '🧭 Hướng Đông, Hướng Nam: Tốt cho hoạt động chính, khởi sự các dự án mới'
-                      : '🧭 East, South: Good for major activities, starting new projects'
-                    }
-                  </p>
-                </div>
-
-                <div className="bg-amber-50 p-4 rounded">
-                  <p className="font-semibold text-amber-700 mb-2">{t.badDirections}</p>
-                  <p className="text-sm">
-                    {language === 'vi'
-                      ? '⚠️ Hướng Tây, Hướng Bắc: Nên tránh những hoạt động quan trọng'
-                      : '⚠️ West, North: Avoid important activities'
-                    }
-                  </p>
-                </div>
-
-                <div className="bg-purple-50 p-4 rounded">
-                  <p className="font-semibold text-purple-700 mb-2">💡 {language === 'vi' ? 'Lời Khuyên' : 'Recommendations'}</p>
-                  <ul className="text-sm space-y-2">
-                    <li>{language === 'vi' ? '✅ Tháng âm lịch lẻ: May mắn' : '✅ Odd lunar months: Lucky'}</li>
-                    <li>{language === 'vi' ? '✅ Ngày con số lẻ: Cân bằng tốt' : '✅ Odd days: Good balance'}</li>
-                    <li>{language === 'vi' ? '⏰ Sử dụng giờ hoàng đạo cho quyết định quan trọng' : '⏰ Use auspicious hours for important decisions'}</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+              </ul>
+            ) : (
+              <p className="text-gray-500 text-sm">{language === 'vi' ? 'Không có dữ liệu ngày lễ' : 'No holidays available'}</p>
+            )}
           </div>
-        )}
+        </div>
+      </main>
 
-        {!selectedDate && activeTab === 'fengshui' && (
-          <div className="bg-white rounded-lg shadow-lg p-12 text-center">
-            <p className="text-gray-500 text-lg">{t.selectDate}</p>
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-2xl font-bold mb-4">{authMode === 'login' ? t.login : t.register}</h2>
+            <form onSubmit={handleAuth} className="space-y-4">
+              {authMode === 'register' && (
+                <input
+                  type="text"
+                  placeholder={t.name}
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  className="w-full border rounded px-3 py-2"
+                />
+              )}
+              <input
+                type="email"
+                placeholder={t.email}
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                className="w-full border rounded px-3 py-2"
+              />
+              <input
+                type="password"
+                placeholder={t.password}
+                value={formData.password}
+                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                className="w-full border rounded px-3 py-2"
+              />
+              <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+                {authMode === 'login' ? t.login : t.register}
+              </button>
+              <button
+                type="button"
+                onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
+                className="w-full text-blue-600 hover:underline"
+              >
+                {authMode === 'login' ? t.register : t.login}
+              </button>
+            </form>
+            <button
+              onClick={() => setShowAuthModal(false)}
+              className="mt-4 w-full bg-gray-300 text-gray-700 py-2 rounded hover:bg-gray-400"
+            >
+              {language === 'vi' ? 'Đóng' : 'Close'}
+            </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
