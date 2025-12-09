@@ -12,11 +12,26 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET must be defined');
+}
+
 // Middleware
 app.use(helmet());
 app.use(express.json());
+
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
 
@@ -55,13 +70,8 @@ app.use((req, res) => {
 });
 
 // Start server
-//const PORT = process.env.PORT || 5000;
-//app.listen(PORT, () => {
-  //console.log(`🚀 Server running on port ${PORT}`);
 const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  
 });

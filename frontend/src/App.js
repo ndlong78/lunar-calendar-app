@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import LunarCalendarApp from './components/LunarCalendarApp';
 import AdminDashboard from './components/AdminDashboard';
-import PrivateRoute from './components/PrivateRoute';
 
 function App() {
   const [isAdmin, setIsAdmin] = useState(false);
