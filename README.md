@@ -387,7 +387,7 @@ MIT License - Xem LICENSE file
 
 ## 📧 Contact
 
-- Email: your-email@example.com
+- Email: ndlong78@gmail.com
 - GitHub: [@ndlong78](https://github.com/ndlong78)
 
 ---
