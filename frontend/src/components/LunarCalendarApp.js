@@ -318,9 +318,9 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
     const firstDay = getFirstDayOfMonth(currentDate);
     const days = [];
 
-    for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="p-2"></div>);
-    }
+      for (let i = 0; i < firstDay; i++) {
+        days.push(<div key={`empty-${i}`} className="empty-day"></div>);
+      }
 
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
@@ -335,26 +335,22 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
         <div
           key={day}
           onClick={() => setSelectedDate(date)}
-          className={`rounded-lg border text-center py-3 px-2 cursor-pointer transition relative bg-white ${
-            isSelected
-              ? 'border-red-500 text-red-700 shadow-sm'
-              : 'border-gray-200 hover:border-red-200 hover:shadow-sm'
-          } ${isToday ? 'ring-2 ring-red-200' : ''} ${holiday ? 'bg-red-50' : ''}`}
+          className={`day-cell ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''} ${holiday ? 'holiday' : ''}`}
         >
-          <div className="flex justify-between items-start text-sm font-semibold">
+          <div className="day-number-row">
             <span>{day}</span>
-            {isFav && <Heart size={12} className="fill-red-500 text-red-500" />}
+            {isFav && <Heart size={12} className="day-favorite" />}
           </div>
-          <div className="text-xs text-gray-600 mt-1">
+          <div className="day-lunar">
             {lunar.day}/{lunar.month}
           </div>
           {holiday && (
-            <div className="text-[11px] font-semibold text-red-600 mt-1 leading-tight">
+            <div className="day-holiday-label">
               {language === 'vi' ? holiday.name_vi : holiday.name_en}
             </div>
           )}
-    </div>
-  );
+        </div>
+      );
 }
 
     return days;
@@ -367,15 +363,15 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
   const isFav = selectedDate ? isFavorite(selectedDate) : false;
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-red-700 text-white shadow">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
-          <h1 className="text-xl md:text-2xl font-semibold">{t.title}</h1>
-          <div className="flex items-center gap-2">
+    <div className="app">
+      <header className="header">
+        <div className="container header-content">
+          <h1 className="header-title">{t.title}</h1>
+          <div className="action-row">
             {user ? (
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-sm"
+                className="ghost-button"
               >
                 <LogOut size={18} />
                 {t.logout}
@@ -383,7 +379,7 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
             ) : (
               <button
                 onClick={() => { setShowAuthModal(true); setAuthMode('login'); }}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-sm"
+                className="ghost-button"
               >
                 <LogIn size={18} />
                 {t.login}
@@ -391,7 +387,7 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
             )}
             <button
               onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')}
-              className="flex items-center gap-2 bg-white text-red-700 px-3 md:px-4 py-2 rounded-lg hover:bg-gray-100 transition text-sm font-semibold"
+              className="language-button"
             >
               <Globe size={18} />
               {language === 'vi' ? 'English' : 'Tiếng Việt'}
@@ -400,52 +396,50 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8 space-y-6">
-        <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <button onClick={handlePrevMonth} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition">
-              <ChevronLeft size={22} />
+      <main className="container main-content">
+        <div className="card">
+          <div className="month-nav">
+            <button onClick={handlePrevMonth} className="month-button" aria-label="Previous month">
+              <ChevronLeft size={20} />
             </button>
-            <h2 className="text-2xl font-bold text-red-700">
+            <h2 className="month-title">
               {t.monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
             </h2>
-            <button onClick={handleNextMonth} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition">
-              <ChevronRight size={22} />
+            <button onClick={handleNextMonth} className="month-button" aria-label="Next month">
+              <ChevronRight size={20} />
             </button>
           </div>
 
-          <div className="flex justify-center mb-4">
+          <div className="today-row">
             <button
               onClick={handleToday}
-              className="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition font-semibold"
+              className="primary-button"
             >
               {t.today}
             </button>
           </div>
 
-          <div className="grid grid-cols-7 gap-2 mb-2">
+          <div className="day-names">
             {t.dayNames.map(day => (
-              <div key={day} className="text-center font-semibold text-white bg-red-600 py-2 rounded-lg text-sm">
+              <div key={day} className="day-name">
                 {day}
               </div>
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-2">
+          <div className="calendar-grid">
             {renderCalendar()}
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold text-red-700">{language === 'vi' ? 'Thông Tin Chi Tiết' : 'Detailed Information'}</h3>
+        <div className="info-grid">
+          <div className="card">
+            <div className="section-header">
+              <h3 className="section-title">{language === 'vi' ? 'Thông Tin Chi Tiết' : 'Detailed Information'}</h3>
               {selectedDate && (
                 <button
                   onClick={() => toggleFavorite(selectedDate)}
-                  className={`px-3 py-2 rounded-lg text-sm font-semibold border transition ${
-                    isFav ? 'border-gray-300 text-gray-700 bg-gray-50' : 'border-red-500 text-red-700 hover:bg-red-50'
-                  }`}
+                  className={`outline-button ${isFav ? 'outline-button-muted' : 'outline-button-accent'}`}
                 >
                   {isFav ? t.removeFavorite : t.addFavorite}
                 </button>
@@ -453,61 +447,55 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
             </div>
 
             {loadingDetails ? (
-              <p className="text-gray-500">{language === 'vi' ? 'Đang tải dữ liệu...' : 'Loading data...'}</p>
+              <p className="muted-text">{language === 'vi' ? 'Đang tải dữ liệu...' : 'Loading data...'}</p>
             ) : selectedDate ? (
-              <div className="space-y-3 text-sm text-gray-700">
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <div className="p-3 rounded-lg border bg-gray-50">
-                    <p className="text-gray-500 text-xs uppercase tracking-wide">{t.solar}</p>
-                    <p className="text-base font-semibold text-gray-800">
-                      {selectedDetails?.solar?.formatted || `${selectedDate.getDate()}/${selectedDate.getMonth() + 1}/${selectedDate.getFullYear()}`}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-lg border bg-gray-50">
-                    <p className="text-gray-500 text-xs uppercase tracking-wide">{t.lunar}</p>
-                    <p className="text-base font-semibold text-gray-800">
-                      {selectedLunar?.day}/{selectedLunar?.month}/{selectedLunar?.year}
-                    </p>
-                  </div>
+              <div className="details-grid">
+                <div className="detail-box">
+                  <p className="detail-label">{t.solar}</p>
+                  <p className="detail-value">
+                    {selectedDetails?.solar?.formatted || `${selectedDate.getDate()}/${selectedDate.getMonth() + 1}/${selectedDate.getFullYear()}`}
+                  </p>
                 </div>
-
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <div className="p-3 rounded-lg border bg-gray-50">
-                    <p className="text-gray-500 text-xs uppercase tracking-wide">{t.zodiacYear}</p>
-                    <p className="text-base font-semibold text-gray-800">{selectedDetails?.zodiacAnimal || selectedZodiac}</p>
-                    {selectedZodiacInfo?.element && (
-                      <p className="text-xs text-gray-500 mt-1">{selectedZodiacInfo.element}</p>
-                    )}
-                  </div>
-                  <div className="p-3 rounded-lg border bg-gray-50">
-                    <p className="text-gray-500 text-xs uppercase tracking-wide">{t.zodiacSignWestern}</p>
-                    <p className="text-base font-semibold text-gray-800">{selectedZodiacSign?.[language] || selectedZodiacSign?.name}</p>
-                    {selectedZodiacSign && (
-                      <p className="text-xs text-gray-500 mt-1">{selectedZodiacSign.element}</p>
-                    )}
-                  </div>
+                <div className="detail-box">
+                  <p className="detail-label">{t.lunar}</p>
+                  <p className="detail-value">
+                    {selectedLunar?.day}/{selectedLunar?.month}/{selectedLunar?.year}
+                  </p>
                 </div>
-
+                <div className="detail-box">
+                  <p className="detail-label">{t.zodiacYear}</p>
+                  <p className="detail-value">{selectedDetails?.zodiacAnimal || selectedZodiac}</p>
+                  {selectedZodiacInfo?.element && (
+                    <p className="detail-subtext">{selectedZodiacInfo.element}</p>
+                  )}
+                </div>
+                <div className="detail-box">
+                  <p className="detail-label">{t.zodiacSignWestern}</p>
+                  <p className="detail-value">{selectedZodiacSign?.[language] || selectedZodiacSign?.name}</p>
+                  {selectedZodiacSign && (
+                    <p className="detail-subtext">{selectedZodiacSign.element}</p>
+                  )}
+                </div>
                 {selectedDetails?.notes && (
-                  <div className="p-3 rounded-lg border bg-gray-50">
-                    <p className="text-gray-500 text-xs uppercase tracking-wide">{language === 'vi' ? 'Ghi chú' : 'Notes'}</p>
-                    <p className="text-sm text-gray-700">{selectedDetails.notes}</p>
+                  <div className="detail-box detail-notes">
+                    <p className="detail-label">{language === 'vi' ? 'Ghi chú' : 'Notes'}</p>
+                    <p className="detail-description">{selectedDetails.notes}</p>
                   </div>
                 )}
               </div>
             ) : (
-              <p className="text-gray-500">{t.selectDate}</p>
+              <p className="muted-text">{t.selectDate}</p>
             )}
           </div>
 
-          <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
-            <h3 className="text-lg font-semibold text-red-700 mb-3">{language === 'vi' ? 'Những Ngày Lễ Chính' : 'Key Holidays'}</h3>
+          <div className="card">
+            <h3 className="section-title">{language === 'vi' ? 'Những Ngày Lễ Chính' : 'Key Holidays'}</h3>
             {holidays.length ? (
-              <ul className="space-y-3">
+              <ul className="holiday-list">
                 {holidays.map((holiday) => (
-                  <li key={holiday._id || holiday.name_vi} className="p-3 rounded-lg border bg-gray-50">
-                    <p className="font-semibold text-gray-800">{language === 'vi' ? holiday.name_vi : holiday.name_en}</p>
-                    <p className="text-xs text-gray-500 mt-1">
+                  <li key={holiday._id || holiday.name_vi} className="holiday-item">
+                    <p className="holiday-name">{language === 'vi' ? holiday.name_vi : holiday.name_en}</p>
+                    <p className="holiday-meta">
                       {holiday.type === 'solar'
                         ? `${t.solar}: ${holiday.solarDate}`
                         : `${t.lunar}: ${holiday.lunarDate}`}
@@ -516,25 +504,24 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
                 ))}
               </ul>
             ) : (
-              <p className="text-gray-500 text-sm">{language === 'vi' ? 'Không có dữ liệu ngày lễ' : 'No holidays available'}</p>
+              <p className="muted-text small-text">{language === 'vi' ? 'Không có dữ liệu ngày lễ' : 'No holidays available'}</p>
             )}
           </div>
         </div>
       </main>
 
-      {/* Auth Modal */}
       {showAuthModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4">{authMode === 'login' ? t.login : t.register}</h2>
-            <form onSubmit={handleAuth} className="space-y-4">
+        <div className="modal-overlay">
+          <div className="modal">
+            <h2 className="modal-title">{authMode === 'login' ? t.login : t.register}</h2>
+            <form onSubmit={handleAuth} className="modal-form">
               {authMode === 'register' && (
                 <input
                   type="text"
                   placeholder={t.name}
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full border rounded px-3 py-2"
+                  className="input"
                 />
               )}
               <input
@@ -542,29 +529,29 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
                 placeholder={t.email}
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
-                className="w-full border rounded px-3 py-2"
+                className="input"
               />
               <input
                 type="password"
                 placeholder={t.password}
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
-                className="w-full border rounded px-3 py-2"
+                className="input"
               />
-              <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+              <button type="submit" className="primary-button full-width">
                 {authMode === 'login' ? t.login : t.register}
               </button>
               <button
                 type="button"
                 onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
-                className="w-full text-blue-600 hover:underline"
+                className="link-button"
               >
                 {authMode === 'login' ? t.register : t.login}
               </button>
             </form>
             <button
               onClick={() => setShowAuthModal(false)}
-              className="mt-4 w-full bg-gray-300 text-gray-700 py-2 rounded hover:bg-gray-400"
+              className="secondary-button full-width"
             >
               {language === 'vi' ? 'Đóng' : 'Close'}
             </button>
