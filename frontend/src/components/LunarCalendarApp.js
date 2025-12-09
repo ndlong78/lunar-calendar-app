@@ -1,16 +1,77 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Globe, Heart, LogOut, LogIn, Save } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, Globe, Heart, LogOut, LogIn } from 'lucide-react';
+import { authService } from '../services/authService';
+import { calendarService } from '../services/calendarService';
 
-export default function LunarCalendarApp() {
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 11, 9));
+export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [language, setLanguage] = useState('vi');
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [user, setUser] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [favorites, setFavorites] = useState([]);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [formData, setFormData] = useState({ email: '', password: '', name: '' });
   const [activeTab, setActiveTab] = useState('calendar');
+  const [holidays, setHolidays] = useState([]);
+  const [selectedDetails, setSelectedDetails] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  useEffect(() => {
+    const loadHolidays = async () => {
+      try {
+        const { data } = await calendarService.getHolidays();
+        setHolidays(data.holidays || []);
+      } catch (error) {
+        console.error('Không thể tải ngày lễ', error);
+      }
+    };
+
+    loadHolidays();
+  }, []);
+
+  useEffect(() => {
+    const loadFavorites = async () => {
+      if (!user) {
+        setFavorites([]);
+        return;
+      }
+
+      try {
+        const { data } = await calendarService.getFavorites();
+        setFavorites(data.favorites || []);
+      } catch (error) {
+        console.error('Không thể tải danh sách yêu thích', error);
+      }
+    };
+
+    loadFavorites();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchDetails = async () => {
+      if (!selectedDate) return;
+
+      setLoadingDetails(true);
+      try {
+        const dateStr = selectedDate.toISOString().slice(0, 10);
+        const [{ data: conversion }, { data: zodiacInfo }] = await Promise.all([
+          calendarService.convertDate(dateStr),
+          calendarService.getZodiacInfo(selectedDate.getFullYear())
+        ]);
+
+        setSelectedDetails({
+          ...conversion,
+          zodiacInfo
+        });
+      } catch (error) {
+        console.error('Không thể lấy thông tin ngày', error);
+      } finally {
+        setLoadingDetails(false);
+      }
+    };
+
+    fetchDetails();
+  }, [selectedDate]);
 
   // Zodiac Animals
   const ZODIAC_ANIMALS = ['Tý', 'Sửu', 'Dần', 'Mão', 'Thìn', 'Tỵ', 'Ngọ', 'Mùi', 'Thân', 'Dậu', 'Tuất', 'Hợi'];
@@ -30,18 +91,6 @@ export default function LunarCalendarApp() {
     { name: 'Bảo Bình', vi: 'Bảo Bình', en: 'Aquarius', dates: '1/20-2/18', element: 'Không khí', characteristic: 'Độc lập, sáng tạo' },
     { name: 'Song Cá', vi: 'Song Cá', en: 'Pisces', dates: '2/19-3/20', element: 'Nước', characteristic: 'Mơ mộng, giàu lòng trắc ẩn' }
   ];
-
-  // Vietnamese Holidays
-  const VIETNAMESE_HOLIDAYS = {
-    '1-1': { vi: 'Tết Dương Lịch', en: 'New Year', type: 'solar' },
-    '2-10': { vi: 'Ngày Lao Động', en: 'Labor Day', type: 'solar' },
-    '4-30': { vi: 'Ngày Giải Phóng', en: 'Reunification Day', type: 'solar' },
-    '9-2': { vi: 'Ngày Quốc Khánh', en: 'National Day', type: 'solar' },
-    'lunar-1-1': { vi: 'Tết Nguyên Đán', en: 'Lunar New Year', type: 'lunar' },
-    'lunar-1-15': { vi: 'Tết Nguyên Tiêu', en: 'Full Moon Festival', type: 'lunar' },
-    'lunar-3-10': { vi: 'Giỗ Tổ Hùng Vương', en: 'Hung Kings Festival', type: 'lunar' },
-    'lunar-8-15': { vi: 'Tết Trung Thu', en: 'Mid-Autumn Festival', type: 'lunar' },
-  };
 
   // Auspicious/Inauspicious hours (Giờ Hoàng Đạo/Hắc Đạo)
   const AUSPICIOUS_HOURS = {
@@ -98,21 +147,34 @@ export default function LunarCalendarApp() {
     return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
   };
 
+  const formatDateKey = (date) => date.toISOString().slice(0, 10);
+
+  const getHolidayForDate = (date) => {
+    const solarKey = `${date.getMonth() + 1}-${date.getDate()}`;
+    const lunar = solarToLunar(date);
+    const lunarKey = `${lunar.month}-${lunar.day}`;
+
+    return holidays.find(h =>
+      (h.type === 'solar' && h.solarDate === solarKey) ||
+      (h.type === 'lunar' && h.lunarDate === lunarKey)
+    );
+  };
+
   const getZodiacSign = (date) => {
     const month = date.getMonth() + 1;
     const day = date.getDate();
     const dateNum = month * 100 + day;
-    
+
     for (let sign of ZODIAC_SIGNS) {
-      const [m1, d1, m2, d2] = sign.dates.split('-').map(x => {
+      const [start, end] = sign.dates.split('-').map(x => {
         const [mm, dd] = x.split('/');
         return parseInt(mm) * 100 + parseInt(dd);
       }).sort((a, b) => a - b);
-      
-      if (m1 <= m2) {
-        if (dateNum >= m1 && dateNum <= m2) return sign;
+
+      if (start <= end) {
+        if (dateNum >= start && dateNum <= end) return sign;
       } else {
-        if (dateNum >= m1 || dateNum <= m2) return sign;
+        if (dateNum >= start || dateNum <= end) return sign;
       }
     }
     return ZODIAC_SIGNS[0];
@@ -201,18 +263,33 @@ export default function LunarCalendarApp() {
 
   const handleAuth = async (e) => {
     e.preventDefault();
-    // Simulated auth - in real app, call backend API
-    if (authMode === 'login') {
-      setUser({ email: formData.email, name: 'User' });
-    } else {
-      setUser({ email: formData.email, name: formData.name });
+    try {
+      if (authMode === 'login') {
+        const { data } = await authService.login(formData.email, formData.password);
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setUser(data.user);
+        setIsAdmin?.(data.user.role === 'admin');
+      } else {
+        const { data } = await authService.register(formData.name, formData.email, formData.password);
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setUser(data.user);
+        setIsAdmin?.(data.user.role === 'admin');
+      }
+
+      setFormData({ email: '', password: '', name: '' });
+      setShowAuthModal(false);
+    } catch (error) {
+      const message = error.response?.data?.message || 'Đăng nhập/đăng ký thất bại';
+      alert(message);
     }
-    setFormData({ email: '', password: '', name: '' });
-    setShowAuthModal(false);
   };
 
   const handleLogout = () => {
+    authService.logout();
     setUser(null);
+    setIsAdmin?.(false);
     setFavorites([]);
   };
 
@@ -221,16 +298,36 @@ export default function LunarCalendarApp() {
       alert(t.loginRequired);
       return;
     }
-    const dateStr = date.toISOString().split('T')[0];
-    setFavorites(prev => 
-      prev.includes(dateStr) 
-        ? prev.filter(d => d !== dateStr)
-        : [...prev, dateStr]
-    );
+
+    const dateKey = formatDateKey(date);
+    const existing = favorites.find(fav => formatDateKey(new Date(fav.date)) === dateKey);
+
+    const updateFavorites = async () => {
+      try {
+        if (existing) {
+          await calendarService.deleteFavorite(existing._id);
+          setFavorites(prev => prev.filter(f => f._id !== existing._id));
+        } else {
+          const payload = {
+            date: dateKey,
+            solarDate: selectedDetails?.solar?.formatted || `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`,
+            lunarDate: selectedDetails?.lunar?.formatted || ''
+          };
+          const { data } = await calendarService.addFavorite(payload);
+          setFavorites(prev => [data.favorite, ...prev]);
+        }
+      } catch (error) {
+        console.error('Không thể cập nhật yêu thích', error);
+        alert('Không thể cập nhật yêu thích');
+      }
+    };
+
+    updateFavorites();
   };
 
   const isFavorite = (date) => {
-    return favorites.includes(date.toISOString().split('T')[0]);
+    const dateKey = formatDateKey(date);
+    return favorites.some(fav => formatDateKey(new Date(fav.date)) === dateKey);
   };
 
   const renderCalendar = () => {
@@ -244,14 +341,11 @@ export default function LunarCalendarApp() {
 
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-      const dateStr = `${date.getMonth() + 1}-${day}`;
       const isToday = new Date().toDateString() === date.toDateString();
       const isSelected = selectedDate?.toDateString() === date.toDateString();
-      const holiday = VIETNAMESE_HOLIDAYS[dateStr];
-      
+
       const lunar = solarToLunar(date);
-      const lunarDateStr = `lunar-${lunar.month}-${lunar.day}`;
-      const lunarHoliday = VIETNAMESE_HOLIDAYS[lunarDateStr];
+      const holiday = getHolidayForDate(date);
       const isFav = isFavorite(date);
 
       days.push(
@@ -269,9 +363,9 @@ export default function LunarCalendarApp() {
           <div className="text-xs text-gray-600">
             {lunar.day}/{lunar.month}
           </div>
-          {(holiday || lunarHoliday) && (
+          {holiday && (
             <div className="text-xs font-semibold text-red-600 mt-1">
-              {holiday ? holiday[language] : lunarHoliday[language]}
+              {language === 'vi' ? holiday.name_vi : holiday.name_en}
             </div>
           )}
         </div>
@@ -281,9 +375,10 @@ export default function LunarCalendarApp() {
     return days;
   };
 
-  const selectedLunar = selectedDate ? solarToLunar(selectedDate) : null;
-  const selectedZodiac = selectedDate ? ZODIAC_ANIMALS[selectedDate.getFullYear() % 12] : null;
+  const selectedLunar = selectedDetails?.lunar || (selectedDate ? solarToLunar(selectedDate) : null);
+  const selectedZodiac = selectedDetails?.zodiacAnimal || (selectedDate ? ZODIAC_ANIMALS[selectedDate.getFullYear() % 12] : null);
   const selectedZodiacSign = selectedDate ? getZodiacSign(selectedDate) : null;
+  const selectedZodiacInfo = selectedDetails?.zodiacInfo;
   const isFav = selectedDate ? isFavorite(selectedDate) : false;
 
   return (
@@ -429,12 +524,14 @@ export default function LunarCalendarApp() {
             <div className="bg-white rounded-lg shadow-lg p-6 h-fit">
               <h3 className="text-xl font-bold mb-4 text-red-700">{language === 'vi' ? 'Thông Tin' : 'Details'}</h3>
 
-              {selectedDate ? (
+              {loadingDetails ? (
+                <p className="text-gray-500">{language === 'vi' ? 'Đang tải dữ liệu...' : 'Loading data...'}</p>
+              ) : selectedDate ? (
                 <div className="space-y-4">
                   <div>
                     <p className="text-sm text-gray-600">{t.solar}</p>
                     <p className="text-lg font-bold">
-                      {selectedDate.getDate()}/{selectedDate.getMonth() + 1}/{selectedDate.getFullYear()}
+                      {selectedDetails?.solar?.formatted || `${selectedDate.getDate()}/${selectedDate.getMonth() + 1}/${selectedDate.getFullYear()}`}
                     </p>
                   </div>
 
@@ -448,6 +545,18 @@ export default function LunarCalendarApp() {
                   <div>
                     <p className="text-sm text-gray-600">{t.zodiacSign}</p>
                     <p className="text-lg font-bold text-red-600">{selectedZodiac}</p>
+                    {selectedZodiacInfo?.element && (
+                      <p className="text-sm text-gray-600">
+                        {language === 'vi' ? 'Ngũ hành: ' : 'Element: '}
+                        {selectedZodiacInfo.element}
+                      </p>
+                    )}
+                    {selectedZodiacInfo?.personality && (
+                      <p className="text-sm text-gray-600">
+                        {language === 'vi' ? 'Tính cách: ' : 'Personality: '}
+                        {selectedZodiacInfo.personality}
+                      </p>
+                    )}
                   </div>
 
                   <button
