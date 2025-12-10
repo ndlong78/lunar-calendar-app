@@ -268,29 +268,61 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
     if (!holidays.length) return [];
 
     const daysInMonth = getDaysInMonth(currentDate);
+    const year = currentDate.getFullYear();
+    const monthIndex = currentDate.getMonth();
+    const lunarLookup = new Map();
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, monthIndex, day);
+      const lunar = solarToLunar(date);
+      const key = `${lunar.month}-${lunar.day}`;
+      const entries = lunarLookup.get(key) || [];
+      entries.push({ date, lunar });
+      lunarLookup.set(key, entries);
+    }
+
     const items = [];
     const seen = new Set();
 
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-      const holiday = getHolidayForDate(date);
+    holidays.forEach((holiday) => {
+      if (holiday.type === 'solar' && holiday.solarDate) {
+        const [month, day] = holiday.solarDate.split('-').map(Number);
+        if (month === monthIndex + 1) {
+          const date = new Date(year, monthIndex, day);
+          const lunar = solarToLunar(date);
+          const key = `${holiday.code || holiday._id || holiday.name_vi}-${date.toDateString()}`;
 
-      if (!holiday) continue;
+          if (!seen.has(key)) {
+            items.push({
+              ...holiday,
+              date,
+              solarDisplay: `${day}/${month}`,
+              lunarDisplay: `${lunar.day}/${lunar.month}`
+            });
+            seen.add(key);
+          }
+        }
+      }
 
-      const lunar = solarToLunar(date);
-      const key = `${holiday.code || holiday._id || holiday.name_vi}-${day}-${currentDate.getMonth() + 1}-${currentDate.getFullYear()}`;
+      if (holiday.type === 'lunar' && holiday.lunarDate) {
+        const [lunarMonth, lunarDay] = holiday.lunarDate.split('-').map(Number);
+        const matches = lunarLookup.get(`${lunarMonth}-${lunarDay}`) || [];
 
-      if (seen.has(key)) continue;
+        matches.forEach(({ date, lunar }) => {
+          const key = `${holiday.code || holiday._id || holiday.name_vi}-${date.toDateString()}`;
 
-      items.push({
-        ...holiday,
-        date,
-        solarDisplay: `${day}/${currentDate.getMonth() + 1}`,
-        lunarDisplay: `${lunar.day}/${lunar.month}`
-      });
-
-      seen.add(key);
-    }
+          if (!seen.has(key)) {
+            items.push({
+              ...holiday,
+              date,
+              solarDisplay: `${date.getDate()}/${monthIndex + 1}`,
+              lunarDisplay: `${lunar.day}/${lunar.month}`
+            });
+            seen.add(key);
+          }
+        });
+      }
+    });
 
     return items.sort((a, b) => a.date - b.date);
   }, [currentDate, holidays]);
