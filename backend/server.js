@@ -15,6 +15,8 @@ const app = express();
 if (!process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET must be defined');
 }
+app.set('trust proxy', 1);  // ← Thêm dòng này
+
 
 // Middleware
 app.use(helmet());
