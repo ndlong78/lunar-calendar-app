@@ -1,7 +1,37 @@
 import axios from 'axios';
 
+const normalizeBaseURL = (rawUrl) => {
+  if (!rawUrl) return null;
+
+  try {
+    const url = new URL(rawUrl);
+
+    // Render services expose an internal port (e.g., 10000) that must not be used externally.
+    // Drop any explicit port for external hosts so the default (80/443) is used instead.
+    const isExternalHost = url.hostname !== 'localhost' && url.hostname !== '127.0.0.1';
+    if (isExternalHost && url.port) {
+      url.port = '';
+    }
+
+    return url.toString().replace(/\/$/, '');
+  } catch (err) {
+    // Fall back to the raw string with a trimmed trailing slash.
+    return rawUrl.replace(/\/$/, '');
+  }
+};
+
+const fallbackBaseURL =
+  process.env.NODE_ENV === 'production'
+    ? 'https://lunar-calendar-app.onrender.com/api'
+    : 'http://localhost:5000/api';
+
+const baseURL = normalizeBaseURL(process.env.REACT_APP_API_URL) || fallbackBaseURL;
+
+// Exported for non-axios consumers (e.g., fetch in offline helpers).
+export const API_BASE_URL = baseURL;
+
 const API = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api'
+  baseURL
 });
 
 API.interceptors.request.use((config) => {
