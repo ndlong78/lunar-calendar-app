@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const holidaySchema = new mongoose.Schema({
+  code: {
+    type: String,
+    index: true
+  },
   name_vi: {
     type: String,
     required: true
@@ -15,6 +19,14 @@ const holidaySchema = new mongoose.Schema({
     type: String,
     enum: ['solar', 'lunar'],
     required: true
+  },
+  is_public_holiday: {
+    type: Boolean,
+    default: false
+  },
+  tags: {
+    type: [String],
+    default: []
   },
   description_vi: String,
   description_en: String,

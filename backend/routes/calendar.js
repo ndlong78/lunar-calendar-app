@@ -1,5 +1,6 @@
 const express = require('express');
 const LunarCalendar = require('../services/LunarCalendar');
+const holidayData = require('../data/vietnam_holidays.json');
 const Holiday = require('../models/Holiday');
 const { verifyToken, verifyAdmin } = require('../middleware/auth');
 
@@ -83,7 +84,28 @@ router.get('/convert-reverse', (req, res, next) => {
 router.get('/holidays', async (req, res, next) => {
   try {
     const holidays = await Holiday.find({ active: true });
-    res.json({ holidays });
+
+    if (holidays.length) {
+      return res.json({ holidays, source: 'database' });
+    }
+
+    const mappedHolidays = holidayData.items.map(item => ({
+      code: item.id,
+      name_vi: item.name_vi,
+      name_en: item.name_en,
+      type: item.calendar === 'solar' ? 'solar' : 'lunar',
+      solarDate: item.calendar === 'solar' ? `${item.month}-${item.day}` : undefined,
+      lunarDate: item.calendar === 'lunar' ? `${item.lunar_month}-${item.lunar_day}` : undefined,
+      description_vi: item.description_vi,
+      is_public_holiday: item.is_public_holiday,
+      tags: item.tags || []
+    }));
+
+    res.json({
+      meta: holidayData.meta,
+      holidays: mappedHolidays,
+      source: 'static'
+    });
   } catch (error) {
     next(error);
   }
