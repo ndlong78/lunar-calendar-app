@@ -7,8 +7,9 @@ const normalizeBaseURL = (rawUrl) => {
     const url = new URL(rawUrl);
 
     // Render services expose an internal port (e.g., 10000) that must not be used externally.
+    // Drop any explicit port for external hosts so the default (80/443) is used instead.
     const isExternalHost = url.hostname !== 'localhost' && url.hostname !== '127.0.0.1';
-    if (isExternalHost && url.protocol === 'https:' && url.port) {
+    if (isExternalHost && url.port) {
       url.port = '';
     }
 
@@ -25,6 +26,9 @@ const fallbackBaseURL =
     : 'http://localhost:5000/api';
 
 const baseURL = normalizeBaseURL(process.env.REACT_APP_API_URL) || fallbackBaseURL;
+
+// Exported for non-axios consumers (e.g., fetch in offline helpers).
+export const API_BASE_URL = baseURL;
 
 const API = axios.create({
   baseURL

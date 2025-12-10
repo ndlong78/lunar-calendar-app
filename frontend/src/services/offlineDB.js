@@ -1,3 +1,5 @@
+import { API_BASE_URL } from '../api/client';
+
 export class OfflineDB {
   constructor(dbName = 'lunar-calendar-db') {
     this.dbName = dbName;
@@ -53,17 +55,14 @@ export function useOfflineDB() {
 
   const saveFavoriteOffline = async (favorite) => {
     try {
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/favorites`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify(favorite)
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/favorites`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(favorite)
+      });
 
       if (!response.ok) throw new Error('Network error');
       return { success: true, synced: true };
