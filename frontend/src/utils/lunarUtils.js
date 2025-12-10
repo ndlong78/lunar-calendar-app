@@ -4,6 +4,41 @@ const PI = Math.PI;
 const dateCache = new Map();
 const monthCache = new Map();
 
+const HEAVENLY_STEMS = ['Giáp', 'Ất', 'Bính', 'Đinh', 'Mậu', 'Kỷ', 'Canh', 'Tân', 'Nhâm', 'Quý'];
+const EARTHLY_BRANCHES = ['Tý', 'Sửu', 'Dần', 'Mão', 'Thìn', 'Tỵ', 'Ngọ', 'Mùi', 'Thân', 'Dậu', 'Tuất', 'Hợi'];
+
+const getLunarMonthName = (month) => {
+  const months = {
+    1: 'Tháng Một',
+    2: 'Tháng Hai',
+    3: 'Tháng Ba',
+    4: 'Tháng Tư',
+    5: 'Tháng Năm',
+    6: 'Tháng Sáu',
+    7: 'Tháng Bảy',
+    8: 'Tháng Tám',
+    9: 'Tháng Chín',
+    10: 'Tháng Mười',
+    11: 'Tháng Mười Một',
+    12: 'Tháng Mười Hai'
+  };
+  return months[month] || '';
+};
+
+const getLunarDayName = (day) => {
+  const days = {
+    1: 'Mùng Một', 2: 'Mùng Hai', 3: 'Mùng Ba', 4: 'Mùng Bốn',
+    5: 'Mùng Năm', 6: 'Mùng Sáu', 7: 'Mùng Bảy', 8: 'Mùng Tám',
+    9: 'Mùng Chín', 10: 'Mùng Mười', 11: 'Mười Một', 12: 'Mười Hai',
+    13: 'Mười Ba', 14: 'Mười Bốn', 15: 'Mười Lăm', 16: 'Mười Sáu',
+    17: 'Mười Bảy', 18: 'Mười Tám', 19: 'Mười Chín', 20: 'Hai Mươi',
+    21: 'Hai Mươi Mốt', 22: 'Hai Mươi Hai', 23: 'Hai Mươi Ba',
+    24: 'Hai Mươi Bốn', 25: 'Hai Mươi Lăm', 26: 'Hai Mươi Sáu',
+    27: 'Hai Mươi Bảy', 28: 'Hai Mươi Tám', 29: 'Hai Mươi Chín', 30: 'Ba Mươi'
+  };
+  return days[day] || '';
+};
+
 const jdFromDate = (dd, mm, yy) => {
   const a = Math.floor((14 - mm) / 12);
   const y = yy + 4800 - a;
@@ -141,11 +176,17 @@ const solarToLunarInternal = (date) => {
   if (lunarMonth > 12) lunarMonth -= 12;
   if (lunarMonth >= 11 && diff < 4) lunarYear -= 1;
 
+  const stem = HEAVENLY_STEMS[(lunarYear + 6) % 10];
+  const branch = EARTHLY_BRANCHES[(lunarYear + 8) % 12];
+
   return {
     day: lunarDay,
     month: lunarMonth,
     year: lunarYear,
-    leap: lunarLeap
+    leap: lunarLeap,
+    dayName: getLunarDayName(lunarDay),
+    monthName: getLunarMonthName(lunarMonth),
+    canChiYear: `${stem} ${branch}`
   };
 };
 
@@ -176,12 +217,13 @@ export const formatLunarDateVerbose = (lunar, language = 'vi') => {
   const leapText = lunar.leap ? (language === 'vi' ? ' (nhuận)' : ' (leap)') : '';
   const dayLabel = lunar.dayName ? `${lunar.dayName} (${lunar.day})` : lunar.day;
   const monthLabel = lunar.monthName ? `${lunar.monthName} (${lunar.month})` : lunar.month;
+  const yearLabel = lunar.canChiYear ? `${lunar.canChiYear} (${lunar.year})` : lunar.year;
 
   if (language === 'vi') {
-    return `Ngày ${dayLabel} tháng ${monthLabel}${leapText} năm ${lunar.year}`;
+    return `Ngày ${dayLabel} tháng ${monthLabel}${leapText} năm ${yearLabel}`;
   }
 
-  return `Day ${dayLabel}, month ${monthLabel}${leapText}, lunar year ${lunar.year}`;
+  return `Day ${dayLabel}, month ${monthLabel}${leapText}, lunar year ${yearLabel}`;
 };
 
 export const buildMonthlyLunarMap = (date) => {

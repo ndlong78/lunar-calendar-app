@@ -173,10 +173,9 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
       setLoadingDetails(true);
       try {
         const dateStr = formatDateKey(selectedDate);
-        const [{ data: conversion }, { data: zodiacInfo }] = await Promise.all([
-          calendarService.convertDate(dateStr),
-          calendarService.getZodiacInfo(selectedDate.getFullYear())
-        ]);
+        const { data: conversion } = await calendarService.convertDate(dateStr);
+        const lunarYear = conversion?.lunar?.year || solarToLunar(selectedDate).year;
+        const { data: zodiacInfo } = await calendarService.getZodiacInfo(lunarYear);
 
         setSelectedDetails({
           ...conversion,
@@ -379,13 +378,17 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
 
   const computedLunar = useMemo(() => selectedDate ? solarToLunar(selectedDate) : null, [selectedDate]);
   const selectedLunar = selectedDetails?.lunar || computedLunar;
-  const selectedZodiac = selectedLunar
+  const selectedZodiacAnimal = selectedLunar
     ? ZODIAC_ANIMALS[((selectedLunar.year - 4) % 12 + 12) % 12]
     : selectedDetails?.zodiacAnimal;
+  const selectedCanChiYear = selectedLunar?.canChiYear;
   const selectedZodiacSign = selectedDate ? getZodiacSign(selectedDate, ZODIAC_SIGNS) : null;
   const selectedZodiacInfo = selectedDetails?.zodiacInfo;
   const isFav = selectedDate ? isFavorite(selectedDate) : false;
   const lunarVerbose = selectedLunar ? formatLunarDateVerbose(selectedLunar, language) : '';
+  const lunarDayDisplay = selectedLunar?.dayName ? `${selectedLunar.dayName} (${selectedLunar.day})` : selectedLunar?.day;
+  const lunarMonthDisplay = selectedLunar?.monthName ? `${selectedLunar.monthName} (${selectedLunar.month})` : selectedLunar?.month;
+  const zodiacDisplay = selectedCanChiYear || selectedZodiacAnimal || selectedDetails?.zodiacAnimal;
 
   return (
     <div className="app">
@@ -484,7 +487,7 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
                 <div className="detail-box">
                   <p className="detail-label">{t.lunar}</p>
                   <p className="detail-value">
-                    {selectedLunar?.day}/{selectedLunar?.month}/{selectedLunar?.year}
+                    {lunarDayDisplay}/{lunarMonthDisplay}/{selectedLunar?.year}
                   </p>
                   {lunarVerbose && (
                     <p className="detail-subtext">{t.lunarVerbose}: {lunarVerbose}</p>
@@ -492,7 +495,13 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
                 </div>
                 <div className="detail-box">
                   <p className="detail-label">{t.zodiacYear}</p>
-                  <p className="detail-value">{selectedDetails?.zodiacAnimal || selectedZodiac}</p>
+                  <p className="detail-value">{zodiacDisplay}</p>
+                  {selectedLunar?.year && (
+                    <p className="detail-subtext">{language === 'vi' ? `Năm âm: ${selectedLunar.year}` : `Lunar year: ${selectedLunar.year}`}</p>
+                  )}
+                  {selectedZodiacAnimal && selectedCanChiYear && (
+                    <p className="detail-subtext">{language === 'vi' ? `Con giáp: ${selectedZodiacAnimal}` : `Animal sign: ${selectedZodiacAnimal}`}</p>
+                  )}
                   {selectedZodiacInfo?.element && (
                     <p className="detail-subtext">{selectedZodiacInfo.element}</p>
                   )}
