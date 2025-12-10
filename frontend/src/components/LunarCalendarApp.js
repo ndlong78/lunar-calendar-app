@@ -119,11 +119,31 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
   const [loadingDetails, setLoadingDetails] = useState(false);
 
   useEffect(() => {
+    const normalizeHoliday = (item = {}) => {
+      const inferredType = item.type || (item.calendar === 'solar' ? 'solar' : item.calendar === 'lunar' ? 'lunar' : undefined);
+      const solarDate = item.solarDate
+        || (inferredType === 'solar' && item.month && item.day ? `${item.month}-${item.day}` : undefined);
+      const lunarMonth = item.lunar_month || item.lunarMonth;
+      const lunarDay = item.lunar_day || item.lunarDay;
+      const lunarDate = item.lunarDate || (inferredType === 'lunar' && lunarMonth && lunarDay ? `${lunarMonth}-${lunarDay}` : undefined);
+
+      return {
+        ...item,
+        code: item.code || item.id,
+        type: inferredType,
+        solarDate,
+        lunarDate
+      };
+    };
+
     const loadHolidays = async () => {
       try {
         const { data } = await calendarService.getHolidays();
         const holidayList = data.holidays || data.items || [];
-        setHolidays(holidayList);
+        const normalized = holidayList
+          .map(normalizeHoliday)
+          .filter(h => h.type && (h.solarDate || h.lunarDate));
+        setHolidays(normalized);
       } catch (error) {
         console.error('Không thể tải ngày lễ', error);
       }
