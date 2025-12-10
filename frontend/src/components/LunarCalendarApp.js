@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Globe, Heart, LogOut, LogIn } from 'lucide-react';
 import { authService } from '../services/authService';
 import { calendarService } from '../services/calendarService';
@@ -263,6 +263,37 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
       (h.type === 'lunar' && h.lunarDate === lunarKey)
     );
   };
+
+  const monthlyHolidays = useMemo(() => {
+    if (!holidays.length) return [];
+
+    const daysInMonth = getDaysInMonth(currentDate);
+    const items = [];
+    const seen = new Set();
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+      const holiday = getHolidayForDate(date);
+
+      if (!holiday) continue;
+
+      const lunar = solarToLunar(date);
+      const key = `${holiday.code || holiday._id || holiday.name_vi}-${day}-${currentDate.getMonth() + 1}-${currentDate.getFullYear()}`;
+
+      if (seen.has(key)) continue;
+
+      items.push({
+        ...holiday,
+        date,
+        solarDisplay: `${day}/${currentDate.getMonth() + 1}`,
+        lunarDisplay: `${lunar.day}/${lunar.month}`
+      });
+
+      seen.add(key);
+    }
+
+    return items.sort((a, b) => a.date - b.date);
+  }, [currentDate, holidays]);
 
   const getZodiacSign = (date) => {
     const month = date.getMonth() + 1;
@@ -611,21 +642,21 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
 
           <div className="card">
             <h3 className="section-title">{language === 'vi' ? 'Những Ngày Lễ Chính' : 'Key Holidays'}</h3>
-            {holidays.length ? (
+            {monthlyHolidays.length ? (
               <ul className="holiday-list">
-                {holidays.map((holiday) => (
-                  <li key={holiday._id || holiday.name_vi} className="holiday-item">
+                {monthlyHolidays.map((holiday) => (
+                  <li key={`${holiday.code || holiday._id}-${holiday.solarDisplay}-${holiday.lunarDisplay}`} className="holiday-item">
                     <p className="holiday-name">{language === 'vi' ? holiday.name_vi : holiday.name_en}</p>
                     <p className="holiday-meta">
                       {holiday.type === 'solar'
-                        ? `${t.solar}: ${holiday.solarDate}`
-                        : `${t.lunar}: ${holiday.lunarDate}`}
+                        ? `${t.solar}: ${holiday.solarDisplay}`
+                        : `${t.lunar}: ${holiday.lunarDisplay}`}
                     </p>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="muted-text small-text">{language === 'vi' ? 'Không có dữ liệu ngày lễ' : 'No holidays available'}</p>
+              <p className="muted-text small-text">{language === 'vi' ? 'Không có ngày lễ trong tháng' : 'No holidays this month'}</p>
             )}
           </div>
         </div>
