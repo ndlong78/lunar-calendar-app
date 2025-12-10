@@ -170,6 +170,18 @@ export const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMon
 export const getFirstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
 export const getLunarKey = (lunar) => `${lunar.month}-${lunar.day}`;
 
+export const formatLunarDateVerbose = (lunar, language = 'vi') => {
+  if (!lunar) return '';
+
+  const leapText = lunar.leap ? (language === 'vi' ? ' (nhuận)' : ' (leap)') : '';
+
+  if (language === 'vi') {
+    return `Ngày ${lunar.day} tháng ${lunar.month}${leapText} năm ${lunar.year}`;
+  }
+
+  return `Day ${lunar.day}, month ${lunar.month}${leapText}, lunar year ${lunar.year}`;
+};
+
 export const buildMonthlyLunarMap = (date) => {
   const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
   const cached = monthCache.get(monthKey);

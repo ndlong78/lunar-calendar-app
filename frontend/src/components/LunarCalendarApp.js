@@ -9,6 +9,7 @@ import {
   getDaysInMonth,
   getFirstDayOfMonth,
   getLunarKey,
+  formatLunarDateVerbose,
   getZodiacSign,
   solarToLunar
 } from '../utils/lunarUtils';
@@ -44,6 +45,7 @@ const TEXTS = {
     addFavorite: 'Thêm Yêu Thích',
     removeFavorite: 'Bỏ Yêu Thích',
     loginRequired: 'Vui lòng đăng nhập để lưu ngày yêu thích',
+    lunarVerbose: 'Âm lịch chi tiết',
   },
   en: {
     title: 'Vietnamese Lunar & Solar Calendar',
@@ -75,6 +77,7 @@ const TEXTS = {
     addFavorite: 'Add Favorite',
     removeFavorite: 'Remove Favorite',
     loginRequired: 'Please login to save favorite dates',
+    lunarVerbose: 'Lunar date breakdown',
   }
 };
 
@@ -380,6 +383,7 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
   const selectedZodiacSign = selectedDate ? getZodiacSign(selectedDate, ZODIAC_SIGNS) : null;
   const selectedZodiacInfo = selectedDetails?.zodiacInfo;
   const isFav = selectedDate ? isFavorite(selectedDate) : false;
+  const lunarVerbose = selectedLunar ? formatLunarDateVerbose(selectedLunar, language) : '';
 
   return (
     <div className="app">
@@ -480,6 +484,9 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
                   <p className="detail-value">
                     {selectedLunar?.day}/{selectedLunar?.month}/{selectedLunar?.year}
                   </p>
+                  {lunarVerbose && (
+                    <p className="detail-subtext">{t.lunarVerbose}: {lunarVerbose}</p>
+                  )}
                 </div>
                 <div className="detail-box">
                   <p className="detail-label">{t.zodiacYear}</p>
