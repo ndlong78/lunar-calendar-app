@@ -48,6 +48,7 @@ router.get('/convert', async (req, res, next) => {
         year: lunar.year,
         month: lunar.month,
         day: lunar.day,
+        leap: lunar.leap,
         formatted: lunar.formatted,
         dayName: lunarDayName,
         monthName: lunarMonthName

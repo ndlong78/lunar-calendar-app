@@ -379,7 +379,9 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
 
   const computedLunar = useMemo(() => selectedDate ? solarToLunar(selectedDate) : null, [selectedDate]);
   const selectedLunar = selectedDetails?.lunar || computedLunar;
-  const selectedZodiac = selectedDetails?.zodiacAnimal || (selectedLunar ? ZODIAC_ANIMALS[(selectedLunar.year - 4) % 12] : null);
+  const selectedZodiac = selectedLunar
+    ? ZODIAC_ANIMALS[((selectedLunar.year - 4) % 12 + 12) % 12]
+    : selectedDetails?.zodiacAnimal;
   const selectedZodiacSign = selectedDate ? getZodiacSign(selectedDate, ZODIAC_SIGNS) : null;
   const selectedZodiacInfo = selectedDetails?.zodiacInfo;
   const isFav = selectedDate ? isFavorite(selectedDate) : false;

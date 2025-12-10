@@ -174,12 +174,14 @@ export const formatLunarDateVerbose = (lunar, language = 'vi') => {
   if (!lunar) return '';
 
   const leapText = lunar.leap ? (language === 'vi' ? ' (nhuận)' : ' (leap)') : '';
+  const dayLabel = lunar.dayName ? `${lunar.dayName} (${lunar.day})` : lunar.day;
+  const monthLabel = lunar.monthName ? `${lunar.monthName} (${lunar.month})` : lunar.month;
 
   if (language === 'vi') {
-    return `Ngày ${lunar.day} tháng ${lunar.month}${leapText} năm ${lunar.year}`;
+    return `Ngày ${dayLabel} tháng ${monthLabel}${leapText} năm ${lunar.year}`;
   }
 
-  return `Day ${lunar.day}, month ${lunar.month}${leapText}, lunar year ${lunar.year}`;
+  return `Day ${dayLabel}, month ${monthLabel}${leapText}, lunar year ${lunar.year}`;
 };
 
 export const buildMonthlyLunarMap = (date) => {

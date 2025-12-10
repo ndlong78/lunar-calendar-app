@@ -191,8 +191,8 @@ class LunarCalendar {
   static getZodiacAnimal(lunarYear) {
     const animals = ['Tý', 'Sửu', 'Dần', 'Mão', 'Thìn', 'Tỵ',
                      'Ngọ', 'Mùi', 'Thân', 'Dậu', 'Tuất', 'Hợi'];
-    const index = (lunarYear - 2000) % 12;
-    return animals[(index + 12 * 100) % 12];
+    const index = ((lunarYear - 4) % 12 + 12) % 12; // 2008 (Mậu Tý) aligns with index 0
+    return animals[index];
   }
 
   static getLunarMonthName(month) {
