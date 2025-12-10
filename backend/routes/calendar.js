@@ -16,7 +16,7 @@ router.get('/convert', async (req, res, next) => {
     }
 
     const [year, month, day] = date.split('-').map(Number);
-    const lunar = LunarCalendar.solarToLunar(year, month, day);
+    const lunar = LunarCalendar.solarToLunar(day, month, year);
     const zodiacAnimal = LunarCalendar.getZodiacAnimal(lunar.year);
     const lunarMonthName = LunarCalendar.getLunarMonthName(lunar.month);
     const lunarDayName = LunarCalendar.getLunarDayName(lunar.day);
