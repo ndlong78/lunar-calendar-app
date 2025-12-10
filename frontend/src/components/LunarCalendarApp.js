@@ -2,108 +2,83 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Globe, Heart, LogOut, LogIn } from 'lucide-react';
 import { authService } from '../services/authService';
 import { calendarService } from '../services/calendarService';
+import { ZODIAC_ANIMALS, ZODIAC_SIGNS } from '../utils/constants';
+import {
+  buildMonthlyLunarMap,
+  formatDateKey,
+  getDaysInMonth,
+  getFirstDayOfMonth,
+  getLunarKey,
+  formatLunarDateVerbose,
+  getZodiacSign,
+  solarToLunar
+} from '../utils/lunarUtils';
 
-const TIMEZONE = 7.0; // Vietnam GMT+7
-const PI = Math.PI;
-
-const jdFromDate = (dd, mm, yy) => {
-  const a = Math.floor((14 - mm) / 12);
-  const y = yy + 4800 - a;
-  const m = mm + 12 * a - 3;
-  return dd + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) -
-    Math.floor(y / 100) + Math.floor(y / 400) - 32045;
-};
-
-const jdToDate = (jd) => {
-  let a = jd + 32044;
-  const b = Math.floor((4 * a + 3) / 146097);
-  const c = a - Math.floor((146097 * b) / 4);
-  const d = Math.floor((4 * c + 3) / 1461);
-  const e = c - Math.floor((1461 * d) / 4);
-  const m = Math.floor((5 * e + 2) / 153);
-  const day = e - Math.floor((153 * m + 2) / 5) + 1;
-  const month = m + 3 - 12 * Math.floor(m / 10);
-  const year = 100 * b + d - 4800 + Math.floor(m / 10);
-  return new Date(year, month - 1, day);
-};
-
-const NewMoon = (k) => {
-  const T = k / 1236.85;
-  const T2 = T * T;
-  const T3 = T2 * T;
-  const dr = PI / 180;
-
-  let Jd1 = 2415020.75933 + 29.53058868 * k + 0.0001178 * T2 - 0.000000155 * T3;
-  Jd1 += 0.00033 * Math.sin((166.56 + 132.87 * T - 0.009173 * T2) * dr);
-
-  const M = 359.2242 + 29.10535608 * k - 0.0000333 * T2 - 0.00000347 * T3;
-  const Mpr = 306.0253 + 385.81691806 * k + 0.0107306 * T2 + 0.00001236 * T3;
-  const F = 21.2964 + 390.67050646 * k - 0.0016528 * T2 - 0.00000239 * T3;
-
-  const C1 = (0.1734 - 0.000393 * T) * Math.sin(M * dr)
-    + 0.0021 * Math.sin(2 * M * dr)
-    - 0.4068 * Math.sin(Mpr * dr)
-    + 0.0161 * Math.sin(2 * Mpr * dr)
-    - 0.0004 * Math.sin(3 * Mpr * dr)
-    + 0.0104 * Math.sin(2 * F * dr)
-    - 0.0051 * Math.sin((M + Mpr) * dr)
-    + 0.0004 * Math.sin((M - Mpr) * dr)
-    + 0.0005 * Math.sin((2 * F + M) * dr)
-    + 0.0004 * Math.sin((2 * F - M) * dr)
-    - 0.0004 * Math.sin((2 * F - Mpr) * dr)
-    + 0.0001 * Math.sin((2 * F + Mpr) * dr)
-    + 0.0001 * Math.sin((2 * M + Mpr) * dr)
-    + 0.0001 * Math.sin(3 * M * dr);
-
-  const deltat = T < -11
-    ? 0.001 + 0.000839 * T + 0.0002261 * T2 - 0.00000845 * T3 - 0.000000081 * T * T3
-    : -0.000278 + 0.000265 * T + 0.000262 * T2;
-
-  return Jd1 + C1 - deltat;
-};
-
-const getNewMoonDay = (k) => {
-  return Math.floor(NewMoon(k) + 0.5 + TIMEZONE / 24);
-};
-
-const sunLongitude = (jdn) => {
-  const T = (jdn - 2451545.0) / 36525;
-  const T2 = T * T;
-  const dr = PI / 180;
-  const M = 357.52910 + 35999.05030 * T - 0.0001559 * T2 - 0.00000048 * T * T2;
-  const L0 = 280.46645 + 36000.76983 * T + 0.0003032 * T2;
-  let DL = (1.914600 - 0.004817 * T - 0.000014 * T2) * Math.sin(dr * M);
-  DL += (0.019993 - 0.000101 * T) * Math.sin(2 * dr * M) + 0.000290 * Math.sin(3 * dr * M);
-  let L = L0 + DL;
-  L *= dr;
-  L = L - Math.PI * 2 * Math.floor(L / (Math.PI * 2));
-  return L;
-};
-
-const getSunLongitude = (dayNumber) => {
-  return Math.floor((sunLongitude(dayNumber - 0.5 - TIMEZONE / 24) / Math.PI) * 6);
-};
-
-const getLunarMonth11 = (yy) => {
-  const off = jdFromDate(31, 12, yy) - 2415021;
-  const k = Math.floor(off / 29.530588853);
-  let nm = getNewMoonDay(k);
-  const sunLong = getSunLongitude(nm);
-  if (sunLong >= 9) nm = getNewMoonDay(k - 1);
-  return nm;
-};
-
-const getLeapMonthOffset = (a11) => {
-  const k = Math.floor(0.5 + (a11 - 2415021.076998695) / 29.530588853);
-  let last = getSunLongitude(getNewMoonDay(k + 1));
-  let i = 2;
-  let arc = getSunLongitude(getNewMoonDay(k + i));
-  while (arc !== last && i < 15) {
-    last = arc;
-    i++;
-    arc = getSunLongitude(getNewMoonDay(k + i));
+const TEXTS = {
+  vi: {
+    title: 'Âm Dương Lịch Việt Nam',
+    calendar: 'Lịch',
+    zodiac: 'Tử Vi',
+    fengshui: 'Phong Thủy',
+    favorites: 'Yêu Thích',
+    login: 'Đăng Nhập',
+    logout: 'Đăng Xuất',
+    register: 'Đăng Ký',
+    email: 'Email',
+    password: 'Mật Khẩu',
+    name: 'Tên',
+    solar: 'Dương Lịch',
+    lunar: 'Âm Lịch',
+    today: 'Hôm Nay',
+    zodiacYear: 'Năm',
+    zodiacSign: 'Chi',
+    zodiacSignWestern: 'Cung Mệnh',
+    element: 'Ngũ Hành',
+    characteristic: 'Đặc Điểm',
+    auspiciousHours: 'Giờ Hoàng Đạo',
+    inauspiciousHours: 'Giờ Hắc Đạo',
+    goodDirections: 'Hướng Tốt',
+    badDirections: 'Hướng Xấu',
+    monthNames: ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'],
+    dayNames: ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'],
+    selectDate: 'Chọn một ngày để xem thông tin',
+    addFavorite: 'Thêm Yêu Thích',
+    removeFavorite: 'Bỏ Yêu Thích',
+    loginRequired: 'Vui lòng đăng nhập để lưu ngày yêu thích',
+    lunarVerbose: 'Âm lịch chi tiết',
+  },
+  en: {
+    title: 'Vietnamese Lunar & Solar Calendar',
+    calendar: 'Calendar',
+    zodiac: 'Zodiac',
+    fengshui: 'Feng Shui',
+    favorites: 'Favorites',
+    login: 'Login',
+    logout: 'Logout',
+    register: 'Register',
+    email: 'Email',
+    password: 'Password',
+    name: 'Name',
+    solar: 'Solar',
+    lunar: 'Lunar',
+    today: 'Today',
+    zodiacYear: 'Year',
+    zodiacSign: 'Animal Sign',
+    zodiacSignWestern: 'Zodiac Sign',
+    element: 'Element',
+    characteristic: 'Characteristics',
+    auspiciousHours: 'Auspicious Hours',
+    inauspiciousHours: 'Inauspicious Hours',
+    goodDirections: 'Good Directions',
+    badDirections: 'Bad Directions',
+    monthNames: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    dayNames: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    selectDate: 'Select a date to view details',
+    addFavorite: 'Add Favorite',
+    removeFavorite: 'Remove Favorite',
+    loginRequired: 'Please login to save favorite dates',
+    lunarVerbose: 'Lunar date breakdown',
   }
-  return i - 1;
 };
 
 export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
@@ -117,6 +92,27 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
   const [holidays, setHolidays] = useState([]);
   const [selectedDetails, setSelectedDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const monthLunarMap = useMemo(() => buildMonthlyLunarMap(currentDate), [currentDate]);
+  const holidayLookup = useMemo(() => {
+    const solar = new Map();
+    const lunar = new Map();
+
+    holidays.forEach((holiday) => {
+      if (holiday.type === 'solar' && holiday.solarDate) {
+        const list = solar.get(holiday.solarDate) || [];
+        list.push(holiday);
+        solar.set(holiday.solarDate, list);
+      }
+
+      if (holiday.type === 'lunar' && holiday.lunarDate) {
+        const list = lunar.get(holiday.lunarDate) || [];
+        list.push(holiday);
+        lunar.set(holiday.lunarDate, list);
+      }
+    });
+
+    return { solar, lunar };
+  }, [holidays]);
 
   useEffect(() => {
     const normalizeHoliday = (item = {}) => {
@@ -196,117 +192,13 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
     fetchDetails();
   }, [selectedDate]);
 
-  // Zodiac Animals
-  const ZODIAC_ANIMALS = ['Tý', 'Sửu', 'Dần', 'Mão', 'Thìn', 'Tỵ', 'Ngọ', 'Mùi', 'Thân', 'Dậu', 'Tuất', 'Hợi'];
-  
-  // Zodiac Signs (12 Cung Mệnh)
-  const ZODIAC_SIGNS = [
-    { name: 'Bạch Dương', vi: 'Bạch Dương', en: 'Aries', dates: '3/21-4/19', element: 'Lửa', characteristic: 'Táo bạo, năng động' },
-    { name: 'Kim Ngưu', vi: 'Kim Ngưu', en: 'Taurus', dates: '4/20-5/20', element: 'Đất', characteristic: 'Vững chắc, trung thực' },
-    { name: 'Song Tử', vi: 'Song Tử', en: 'Gemini', dates: '5/21-6/20', element: 'Không khí', characteristic: 'Thông minh, linh hoạt' },
-    { name: 'Cự Giải', vi: 'Cự Giải', en: 'Cancer', dates: '6/21-7/22', element: 'Nước', characteristic: 'Nhạy cảm, chân thành' },
-    { name: 'Sư Tử', vi: 'Sư Tử', en: 'Leo', dates: '7/23-8/22', element: 'Lửa', characteristic: 'Tự tin, lãnh đạo' },
-    { name: 'Xử Nữ', vi: 'Xử Nữ', en: 'Virgo', dates: '8/23-9/22', element: 'Đất', characteristic: 'Cẩn thận, chi tiết' },
-    { name: 'Thiên Bình', vi: 'Thiên Bình', en: 'Libra', dates: '9/23-10/22', element: 'Không khí', characteristic: 'Cân bằng, công bằng' },
-    { name: 'Bọ Cạp', vi: 'Bọ Cạp', en: 'Scorpio', dates: '10/23-11/21', element: 'Nước', characteristic: 'Sâu sắc, bí ẩn' },
-    { name: 'Nhân Mã', vi: 'Nhân Mã', en: 'Sagittarius', dates: '11/22-12/21', element: 'Lửa', characteristic: 'Lạc quan, tự do' },
-    { name: 'Ma Kết', vi: 'Ma Kết', en: 'Capricorn', dates: '12/22-1/19', element: 'Đất', characteristic: 'Kỷ luật, trách nhiệm' },
-    { name: 'Bảo Bình', vi: 'Bảo Bình', en: 'Aquarius', dates: '1/20-2/18', element: 'Không khí', characteristic: 'Độc lập, sáng tạo' },
-    { name: 'Song Cá', vi: 'Song Cá', en: 'Pisces', dates: '2/19-3/20', element: 'Nước', characteristic: 'Mơ mộng, giàu lòng trắc ẩn' }
-  ];
-
-  const solarToLunar = (date) => {
-    const dd = date.getDate();
-    const mm = date.getMonth() + 1;
-    const yy = date.getFullYear();
-
-    const dayNumber = jdFromDate(dd, mm, yy);
-    let k = Math.floor((dayNumber - 2415021.076998695) / 29.530588853);
-    let monthStart = getNewMoonDay(k + 1);
-
-    if (monthStart > dayNumber) {
-      monthStart = getNewMoonDay(k);
-    }
-
-    let a11 = getLunarMonth11(yy);
-    let b11 = a11;
-    let lunarYear;
-
-    if (a11 >= monthStart) {
-      lunarYear = yy;
-      a11 = getLunarMonth11(yy - 1);
-    } else {
-      lunarYear = yy + 1;
-      b11 = getLunarMonth11(yy + 1);
-    }
-
-    const lunarDay = dayNumber - monthStart + 1;
-    let diff = Math.floor((monthStart - a11) / 29);
-    let lunarMonth = diff + 11;
-    let lunarLeap = false;
-
-    if (b11 - a11 > 365) {
-      const leapMonthDiff = getLeapMonthOffset(a11);
-      if (diff >= leapMonthDiff) {
-        lunarMonth = diff + 10;
-        if (diff === leapMonthDiff) lunarLeap = true;
-      }
-    }
-
-    if (lunarMonth > 12) lunarMonth -= 12;
-    if (lunarMonth >= 11 && diff < 4) lunarYear -= 1;
-
-    return {
-      day: lunarDay,
-      month: lunarMonth,
-      year: lunarYear,
-      leap: lunarLeap
-    };
-  };
-
-  const getDaysInMonth = (date) => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  };
-
-  const getFirstDayOfMonth = (date) => {
-    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-  };
-
-  const formatDateKey = (date) => {
-    const year = date.getFullYear();
-    const month = `${date.getMonth() + 1}`.padStart(2, '0');
-    const day = `${date.getDate()}`.padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const getHolidayForDate = (date) => {
-    const solarKey = `${date.getMonth() + 1}-${date.getDate()}`;
-    const lunar = solarToLunar(date);
-    const lunarKey = `${lunar.month}-${lunar.day}`;
-
-    return holidays.find(h =>
-      (h.type === 'solar' && h.solarDate === solarKey) ||
-      (h.type === 'lunar' && h.lunarDate === lunarKey)
-    );
-  };
+  const t = TEXTS[language];
 
   const monthlyHolidays = useMemo(() => {
     if (!holidays.length) return [];
 
-    const daysInMonth = getDaysInMonth(currentDate);
     const year = currentDate.getFullYear();
     const monthIndex = currentDate.getMonth();
-    const lunarLookup = new Map();
-
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(year, monthIndex, day);
-      const lunar = solarToLunar(date);
-      const key = `${lunar.month}-${lunar.day}`;
-      const entries = lunarLookup.get(key) || [];
-      entries.push({ date, lunar });
-      lunarLookup.set(key, entries);
-    }
-
     const items = [];
     const seen = new Set();
 
@@ -331,8 +223,7 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
       }
 
       if (holiday.type === 'lunar' && holiday.lunarDate) {
-        const [lunarMonth, lunarDay] = holiday.lunarDate.split('-').map(Number);
-        const matches = lunarLookup.get(`${lunarMonth}-${lunarDay}`) || [];
+        const matches = monthLunarMap.get(holiday.lunarDate) || [];
 
         matches.forEach(({ date, lunar }) => {
           const key = `${holiday.code || holiday._id || holiday.name_vi}-${date.toDateString()}`;
@@ -351,96 +242,16 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
     });
 
     return items.sort((a, b) => a.date - b.date);
-  }, [currentDate, holidays]);
+  }, [currentDate, holidays, monthLunarMap]);
 
-  const getZodiacSign = (date) => {
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const dateNum = month * 100 + day;
+  const getHolidayForDate = (date) => {
+    const solarKey = `${date.getMonth() + 1}-${date.getDate()}`;
+    const lunar = solarToLunar(date);
+    const lunarKey = getLunarKey(lunar);
 
-    for (let sign of ZODIAC_SIGNS) {
-      const [start, end] = sign.dates.split('-').map(x => {
-        const [mm, dd] = x.split('/');
-        return parseInt(mm) * 100 + parseInt(dd);
-      }).sort((a, b) => a - b);
-
-      if (start <= end) {
-        if (dateNum >= start && dateNum <= end) return sign;
-      } else {
-        if (dateNum >= start || dateNum <= end) return sign;
-      }
-    }
-    return ZODIAC_SIGNS[0];
+    return holidayLookup.solar.get(solarKey)?.[0]
+      || holidayLookup.lunar.get(lunarKey)?.[0];
   };
-
-  const texts = {
-    vi: {
-      title: 'Âm Dương Lịch Việt Nam',
-      calendar: 'Lịch',
-      zodiac: 'Tử Vi',
-      fengshui: 'Phong Thủy',
-      favorites: 'Yêu Thích',
-      login: 'Đăng Nhập',
-      logout: 'Đăng Xuất',
-      register: 'Đăng Ký',
-      email: 'Email',
-      password: 'Mật Khẩu',
-      name: 'Tên',
-      solar: 'Dương Lịch',
-      lunar: 'Âm Lịch',
-      today: 'Hôm Nay',
-      zodiacYear: 'Năm',
-      zodiacSign: 'Chi',
-      zodiacSignWestern: 'Cung Mệnh',
-      element: 'Ngũ Hành',
-      characteristic: 'Đặc Điểm',
-      auspiciousHours: 'Giờ Hoàng Đạo',
-      inauspiciousHours: 'Giờ Hắc Đạo',
-      fengShuiTips: 'Gợi Ý Phong Thủy',
-      goodDirections: 'Hướng Tốt',
-      badDirections: 'Hướng Xấu',
-      monthNames: ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'],
-      dayNames: ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'],
-      selectDate: 'Chọn một ngày để xem thông tin',
-      addFavorite: 'Thêm Yêu Thích',
-      removeFavorite: 'Bỏ Yêu Thích',
-      loginRequired: 'Vui lòng đăng nhập để lưu ngày yêu thích',
-    },
-    en: {
-      title: 'Vietnamese Lunar & Solar Calendar',
-      calendar: 'Calendar',
-      zodiac: 'Zodiac',
-      fengshui: 'Feng Shui',
-      favorites: 'Favorites',
-      login: 'Login',
-      logout: 'Logout',
-      register: 'Register',
-      email: 'Email',
-      password: 'Password',
-      name: 'Name',
-      solar: 'Solar',
-      lunar: 'Lunar',
-      today: 'Today',
-      zodiacYear: 'Year',
-      zodiacSign: 'Animal Sign',
-      zodiacSignWestern: 'Zodiac Sign',
-      element: 'Element',
-      characteristic: 'Characteristics',
-      auspiciousHours: 'Auspicious Hours',
-      inauspiciousHours: 'Inauspicious Hours',
-      fengShuiTips: 'Feng Shui Tips',
-      goodDirections: 'Good Directions',
-      badDirections: 'Bad Directions',
-      monthNames: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-      dayNames: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-      selectDate: 'Select a date to view details',
-      addFavorite: 'Add Favorite',
-      removeFavorite: 'Remove Favorite',
-      loginRequired: 'Please login to save favorite dates',
-    }
-  };
-
-  const t = texts[language];
 
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
@@ -566,11 +377,13 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
     return days;
   };
 
-  const selectedLunar = selectedDetails?.lunar || (selectedDate ? solarToLunar(selectedDate) : null);
-  const selectedZodiac = selectedDetails?.zodiacAnimal || (selectedDate ? ZODIAC_ANIMALS[selectedDate.getFullYear() % 12] : null);
-  const selectedZodiacSign = selectedDate ? getZodiacSign(selectedDate) : null;
+  const computedLunar = useMemo(() => selectedDate ? solarToLunar(selectedDate) : null, [selectedDate]);
+  const selectedLunar = selectedDetails?.lunar || computedLunar;
+  const selectedZodiac = selectedDetails?.zodiacAnimal || (selectedLunar ? ZODIAC_ANIMALS[(selectedLunar.year - 4) % 12] : null);
+  const selectedZodiacSign = selectedDate ? getZodiacSign(selectedDate, ZODIAC_SIGNS) : null;
   const selectedZodiacInfo = selectedDetails?.zodiacInfo;
   const isFav = selectedDate ? isFavorite(selectedDate) : false;
+  const lunarVerbose = selectedLunar ? formatLunarDateVerbose(selectedLunar, language) : '';
 
   return (
     <div className="app">
@@ -671,6 +484,9 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
                   <p className="detail-value">
                     {selectedLunar?.day}/{selectedLunar?.month}/{selectedLunar?.year}
                   </p>
+                  {lunarVerbose && (
+                    <p className="detail-subtext">{t.lunarVerbose}: {lunarVerbose}</p>
+                  )}
                 </div>
                 <div className="detail-box">
                   <p className="detail-label">{t.zodiacYear}</p>
