@@ -1,106 +1,184 @@
 class LunarCalendar {
-  static K1 = 365.2425;
-  static K2 = 29.53058867;
+  static TIMEZONE = 7.0; // Vietnam GMT+7
+
+  static jdFromDate(dd, mm, yy) {
+    const a = Math.floor((14 - mm) / 12);
+    const y = yy + 4800 - a;
+    const m = mm + 12 * a - 3;
+    return dd + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) -
+      Math.floor(y / 100) + Math.floor(y / 400) - 32045;
+  }
 
   static jdToDate(jd) {
-    const l = Math.floor(jd + 0.5) + 68569;
-    const n = Math.floor((4 * l) / 146097);
-    const l2 = l - Math.floor((146097 * n + 3) / 4);
-    const i = Math.floor((4000 * (l2 + 1)) / 1461001);
-    const l3 = l2 - Math.floor((1461 * i) / 4) + 31;
-    const j = Math.floor((80 * l3) / 2447);
-    const d = l3 - Math.floor((2447 * j) / 80);
-    const l4 = Math.floor(j / 11);
-    const m = j + 2 - 12 * l4;
-    const y = 100 * (n - 49) + i + l4;
-
-    return new Date(y, m - 1, d);
+    let a = jd + 32044;
+    const b = Math.floor((4 * a + 3) / 146097);
+    const c = a - Math.floor((146097 * b) / 4);
+    const d = Math.floor((4 * c + 3) / 1461);
+    const e = c - Math.floor((1461 * d) / 4);
+    const m = Math.floor((5 * e + 2) / 153);
+    const day = e - Math.floor((153 * m + 2) / 5) + 1;
+    const month = m + 3 - 12 * Math.floor(m / 10);
+    const year = 100 * b + d - 4800 + Math.floor(m / 10);
+    return new Date(year, month - 1, day);
   }
 
-  static dateToJd(year, month, day) {
-    const a = Math.floor((14 - month) / 12);
-    const y = year + 4800 - a;
-    const m = month + 12 * a - 3;
-    return day + Math.floor((153 * m + 2) / 5) + 365 * y + 
-           Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
-  }
-
-  static getNewMoonJd(k) {
+  static NewMoon(k) {
     const T = k / 1236.85;
-    const JDE = 2451550.09766 + 29.530588861 * k
-      + 0.00015437 * T * T
-      - 0.000000150 * T * T * T
-      + 0.00000011 * T * T * T * T;
+    const T2 = T * T;
+    const T3 = T2 * T;
+    const dr = Math.PI / 180;
 
-    const E = 1 - 0.002516 * T - 0.0000074 * T * T;
-    const M = 2.5534 + 29.10535670 * k
-      - 0.0000014 * T * T
-      - 0.11 * T * T * T;
-    const Mprime = 201.5643 + 385.81693528 * k
-      + 0.0107582 * T * T
-      + 0.00001238 * T * T * T
-      - 0.000000058 * T * T * T * T;
-    const F = 160.7108 + 390.67050284 * k
-      - 0.0016118 * T * T
-      - 0.00000227 * T * T * T
-      + 0.000000011 * T * T * T * T;
+    let Jd1 = 2415020.75933 + 29.53058868 * k + 0.0001178 * T2 - 0.000000155 * T3;
+    Jd1 += 0.00033 * Math.sin((166.56 + 132.87 * T - 0.009173 * T2) * dr);
 
-    const corrections = [
-      { coeff: -0.40720, mult: () => Math.sin((Mprime * Math.PI) / 180) },
-      { coeff: 0.17241 * E, mult: () => Math.sin((M * Math.PI) / 180) },
-      { coeff: -0.01608, mult: () => Math.sin((2 * Mprime * Math.PI) / 180) },
-      { coeff: 0.01039, mult: () => Math.sin((2 * F * Math.PI) / 180) },
-      { coeff: 0.00739 * E, mult: () => Math.sin(((Mprime - M) * Math.PI) / 180) },
-      { coeff: -0.00514 * E, mult: () => Math.sin(((Mprime + M) * Math.PI) / 180) },
-      { coeff: 0.00208 * E * E, mult: () => Math.sin((2 * M * Math.PI) / 180) },
-      { coeff: 0.00111, mult: () => Math.sin(((Mprime - 2 * F) * Math.PI) / 180) }
-    ];
+    const M = 359.2242 + 29.10535608 * k - 0.0000333 * T2 - 0.00000347 * T3;
+    const Mpr = 306.0253 + 385.81691806 * k + 0.0107306 * T2 + 0.00001236 * T3;
+    const F = 21.2964 + 390.67050646 * k - 0.0016528 * T2 - 0.00000239 * T3;
 
-    let correction = 0;
-    corrections.forEach(c => {
-      correction += c.coeff * c.mult();
-    });
+    const C1 = (0.1734 - 0.000393 * T) * Math.sin(M * dr)
+      + 0.0021 * Math.sin(2 * M * dr)
+      - 0.4068 * Math.sin(Mpr * dr)
+      + 0.0161 * Math.sin(2 * Mpr * dr)
+      - 0.0004 * Math.sin(3 * Mpr * dr)
+      + 0.0104 * Math.sin(2 * F * dr)
+      - 0.0051 * Math.sin((M + Mpr) * dr)
+      + 0.0004 * Math.sin((M - Mpr) * dr)
+      + 0.0005 * Math.sin((2 * F + M) * dr)
+      + 0.0004 * Math.sin((2 * F - M) * dr)
+      - 0.0004 * Math.sin((2 * F - Mpr) * dr)
+      + 0.0001 * Math.sin((2 * F + Mpr) * dr)
+      + 0.0001 * Math.sin((2 * M + Mpr) * dr)
+      + 0.0001 * Math.sin(3 * M * dr);
 
-    return JDE + correction;
+    const deltat = T < -11
+      ? 0.001 + 0.000839 * T + 0.0002261 * T2 - 0.00000845 * T3 - 0.000000081 * T * T3
+      : -0.000278 + 0.000265 * T + 0.000262 * T2;
+
+    return Jd1 + C1 - deltat;
   }
 
-  static solarToLunar(solarYear, solarMonth, solarDay) {
-    const jd = this.dateToJd(solarYear, solarMonth, solarDay) + 0.5;
-    
-    let k = (jd - 2451550.1) / 29.53058867;
-    k = Math.floor(k);
+  static getNewMoonDay(k, timeZone) {
+    return Math.floor(this.NewMoon(k) + 0.5 + timeZone / 24);
+  }
 
-    let newMoonJd = this.getNewMoonJd(k);
+  static sunLongitude(jdn) {
+    const T = (jdn - 2451545.0) / 36525;
+    const T2 = T * T;
+    const dr = Math.PI / 180;
+    const M = 357.52910 + 35999.05030 * T - 0.0001559 * T2 - 0.00000048 * T * T2;
+    const L0 = 280.46645 + 36000.76983 * T + 0.0003032 * T2;
+    let DL = (1.914600 - 0.004817 * T - 0.000014 * T2) * Math.sin(dr * M);
+    DL += (0.019993 - 0.000101 * T) * Math.sin(2 * dr * M) + 0.000290 * Math.sin(3 * dr * M);
+    let L = L0 + DL;
+    L *= dr;
+    L = L - Math.PI * 2 * Math.floor(L / (Math.PI * 2));
+    return L;
+  }
 
-    if (newMoonJd > jd) {
-      k--;
-      newMoonJd = this.getNewMoonJd(k);
+  static getSunLongitude(dayNumber, timeZone) {
+    return Math.floor((this.sunLongitude(dayNumber - 0.5 - timeZone / 24) / Math.PI) * 6);
+  }
+
+  static getLunarMonth11(yy, timeZone) {
+    const off = this.jdFromDate(31, 12, yy) - 2415021;
+    const k = Math.floor(off / 29.530588853);
+    let nm = this.getNewMoonDay(k, timeZone);
+    const sunLong = this.getSunLongitude(nm, timeZone);
+    if (sunLong >= 9) nm = this.getNewMoonDay(k - 1, timeZone);
+    return nm;
+  }
+
+  static getLeapMonthOffset(a11, timeZone) {
+    const k = Math.floor(0.5 + (a11 - 2415021.076998695) / 29.530588853);
+    let last = this.getSunLongitude(this.getNewMoonDay(k + 1, timeZone), timeZone);
+    let i = 2;
+    let arc = this.getSunLongitude(this.getNewMoonDay(k + i, timeZone), timeZone);
+    while (arc !== last && i < 15) {
+      last = arc;
+      i++;
+      arc = this.getSunLongitude(this.getNewMoonDay(k + i, timeZone), timeZone);
+    }
+    return i - 1;
+  }
+
+  static solarToLunar(day, month, year, timeZone = LunarCalendar.TIMEZONE) {
+    const dayNumber = this.jdFromDate(day, month, year);
+    let k = Math.floor((dayNumber - 2415021.076998695) / 29.530588853);
+    let monthStart = this.getNewMoonDay(k + 1, timeZone);
+
+    if (monthStart > dayNumber) {
+      monthStart = this.getNewMoonDay(k, timeZone);
     }
 
-    let nextNewMoonJd = this.getNewMoonJd(k + 1);
-    if (jd >= nextNewMoonJd) {
-      k++;
-      newMoonJd = nextNewMoonJd;
-      nextNewMoonJd = this.getNewMoonJd(k + 1);
+    let a11 = this.getLunarMonth11(year, timeZone);
+    let b11 = a11;
+    let lunarYear;
+
+    if (a11 >= monthStart) {
+      lunarYear = year;
+      a11 = this.getLunarMonth11(year - 1, timeZone);
+    } else {
+      lunarYear = year + 1;
+      b11 = this.getLunarMonth11(year + 1, timeZone);
     }
 
-    const lunarDay = Math.floor(jd - newMoonJd) + 1;
-    let lunarMonth = k % 12 + 1;
-    let lunarYear = Math.floor(k / 12) + 2000;
+    const lunarDay = dayNumber - monthStart + 1;
+    let diff = Math.floor((monthStart - a11) / 29);
+    let lunarMonth = diff + 11;
+    let lunarLeap = false;
+
+    if (b11 - a11 > 365) {
+      const leapMonthDiff = this.getLeapMonthOffset(a11, timeZone);
+      if (diff >= leapMonthDiff) {
+        lunarMonth = diff + 10;
+        if (diff === leapMonthDiff) lunarLeap = true;
+      }
+    }
+
+    if (lunarMonth > 12) {
+      lunarMonth -= 12;
+    }
+
+    if (lunarMonth >= 11 && diff < 4) {
+      lunarYear -= 1;
+    }
 
     return {
       day: lunarDay,
       month: lunarMonth,
       year: lunarYear,
+      leap: lunarLeap,
       formatted: `${lunarDay}/${lunarMonth}/${lunarYear}`
     };
   }
 
-  static lunarToSolar(lunarYear, lunarMonth, lunarDay) {
-    let k = (lunarYear - 2000) * 12 + lunarMonth - 1;
-    const newMoonJd = this.getNewMoonJd(k);
-    const jd = newMoonJd + lunarDay - 1;
-    const date = this.jdToDate(jd);
+  static lunarToSolar(lunarYear, lunarMonth, lunarDay, lunarLeap = false, timeZone = LunarCalendar.TIMEZONE) {
+    let a11;
+    let b11;
+
+    if (lunarMonth < 11) {
+      a11 = this.getLunarMonth11(lunarYear - 1, timeZone);
+      b11 = this.getLunarMonth11(lunarYear, timeZone);
+    } else {
+      a11 = this.getLunarMonth11(lunarYear, timeZone);
+      b11 = this.getLunarMonth11(lunarYear + 1, timeZone);
+    }
+
+    let k = Math.floor(0.5 + (a11 - 2415021.076998695) / 29.530588853);
+    let off = lunarMonth - 11;
+
+    if (off < 0) off += 12;
+
+    if (b11 - a11 > 365) {
+      const leapOff = this.getLeapMonthOffset(a11, timeZone);
+      let leapMonth = leapOff - 2;
+      if (leapMonth < 0) leapMonth += 12;
+      if (lunarLeap && lunarMonth !== leapMonth) return null;
+      if (lunarLeap || off >= leapOff) off += 1;
+    }
+
+    const monthStart = Math.floor(this.NewMoon(k + off) + 0.5 + timeZone / 24);
+    const date = this.jdToDate(monthStart + lunarDay - 1);
 
     return {
       year: date.getFullYear(),
