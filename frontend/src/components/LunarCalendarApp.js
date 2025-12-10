@@ -122,7 +122,8 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
     const loadHolidays = async () => {
       try {
         const { data } = await calendarService.getHolidays();
-        setHolidays(data.holidays || []);
+        const holidayList = data.holidays || data.items || [];
+        setHolidays(holidayList);
       } catch (error) {
         console.error('Không thể tải ngày lễ', error);
       }
@@ -155,7 +156,7 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
 
       setLoadingDetails(true);
       try {
-        const dateStr = selectedDate.toISOString().slice(0, 10);
+        const dateStr = formatDateKey(selectedDate);
         const [{ data: conversion }, { data: zodiacInfo }] = await Promise.all([
           calendarService.convertDate(dateStr),
           calendarService.getZodiacInfo(selectedDate.getFullYear())
@@ -251,7 +252,12 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
     return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
   };
 
-  const formatDateKey = (date) => date.toISOString().slice(0, 10);
+  const formatDateKey = (date) => {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   const getHolidayForDate = (date) => {
     const solarKey = `${date.getMonth() + 1}-${date.getDate()}`;
