@@ -16,14 +16,13 @@ if (!process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET must be defined');
 }
 
-// ✅ FIX #1: Trust proxy (dành cho Render)
+// Trust proxy for Render
 app.set('trust proxy', 1);
 
 // Middleware
 app.use(helmet());
 app.use(express.json());
 
-// ✅ FIX #2: CORS config - Accept multiple origins
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
   .split(',')
   .map(origin => origin.trim())
@@ -33,15 +32,9 @@ console.log('[CONFIG] Allowed CORS origins:', allowedOrigins);
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests without origin (mobile, desktop apps)
-    if (!origin) return callback(null, true);
-    
-    // Allow if in whitelist
-    if (allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    
-    // Log rejected origins for debugging
     console.warn('[CORS] Rejected origin:', origin);
     return callback(new Error('Not allowed by CORS'));
   },
@@ -50,16 +43,13 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// ✅ FIX #3: Rate limiting with trust proxy
+// Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,  // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 100,
   message: 'Quá nhiều request, vui lòng thử lại sau',
-  standardHeaders: true,  // Log in RateLimit-* headers
-  skip: (req) => {
-    // Skip rate limit for health check
-    return req.path === '/api/health';
-  }
+  standardHeaders: true,
+  skip: (req) => req.path === '/api/health'
 });
 app.use('/api/', limiter);
 
