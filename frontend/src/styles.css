@@ -308,6 +308,37 @@ body {
   font-size: 14px;
 }
 
+.details-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.detail-section {
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #f9fafb;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.section-icon {
+  font-size: 18px;
+}
+
+.date-large {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--gray-900);
+}
+
 .details-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -336,6 +367,10 @@ body {
   color: var(--gray-900);
 }
 
+.detail-value.emphasis {
+  font-size: 18px;
+}
+
 .detail-subtext {
   margin: 4px 0 0;
   font-size: 12px;
@@ -351,6 +386,133 @@ body {
   font-size: 14px;
   color: var(--gray-700);
   line-height: 1.5;
+}
+
+.holiday-banner {
+  display: flex;
+  gap: 12px;
+  border: 1px solid #fecaca;
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  border-radius: 12px;
+  padding: 12px 14px;
+  align-items: center;
+}
+
+.holiday-icon {
+  font-size: 28px;
+}
+
+.holiday-title {
+  margin: 0;
+  font-weight: 800;
+  color: #b91c1c;
+}
+
+.holiday-meta {
+  margin: 4px 0 0;
+  color: #7f1d1d;
+  font-size: 13px;
+}
+
+.badge-official {
+  display: inline-block;
+  background: #991b1b;
+  color: var(--white);
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.lunar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.lunar-chip {
+  background: var(--white);
+  border-radius: 10px;
+  border: 1px solid var(--gray-200);
+  padding: 8px 10px;
+}
+
+.chip-label {
+  margin: 0 0 2px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gray-500);
+}
+
+.chip-value {
+  margin: 0;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.leap-badge {
+  display: inline-block;
+  margin-left: 6px;
+  background: #fef3c7;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  color: #b45309;
+}
+
+.canchi-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.zodiac-emoji {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 18px;
+}
+
+.zodiac-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.hours-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.hour-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.hour-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  border: 1px solid var(--gray-200);
+  background: var(--white);
+}
+
+.hour-badge.good {
+  color: #166534;
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.hour-badge.bad {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
 }
 
 .holiday-list {
