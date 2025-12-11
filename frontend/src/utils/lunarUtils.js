@@ -4,6 +4,10 @@ const PI = Math.PI;
 const dateCache = new Map();
 const monthCache = new Map();
 
+// Cache size limits
+const MAX_DATE_CACHE_SIZE = 1000;
+const MAX_MONTH_CACHE_SIZE = 100;
+
 const HEAVENLY_STEMS = ['Giáp', 'Ất', 'Bính', 'Đinh', 'Mậu', 'Kỷ', 'Canh', 'Tân', 'Nhâm', 'Quý'];
 const EARTHLY_BRANCHES = ['Tý', 'Sửu', 'Dần', 'Mão', 'Thìn', 'Tỵ', 'Ngọ', 'Mùi', 'Thân', 'Dậu', 'Tuất', 'Hợi'];
 
@@ -203,6 +207,13 @@ export const solarToLunar = (date) => {
   if (cached) return cached;
 
   const result = solarToLunarInternal(date);
+  
+  //  CACHE CLEANUP
+  if (dateCache.size >= MAX_DATE_CACHE_SIZE) {
+    const firstKey = dateCache.keys().next().value;
+    dateCache.delete(firstKey);
+  }
+  
   dateCache.set(key, result);
   return result;
 };
@@ -242,7 +253,11 @@ export const buildMonthlyLunarMap = (date) => {
     entries.push({ date: currentDate, lunar });
     map.set(key, entries);
   }
-
+ // ➕ THÊM CACHE CLEANUP
+  if (monthCache.size >= MAX_MONTH_CACHE_SIZE) {
+    const firstKey = monthCache.keys().next().value;
+    monthCache.delete(firstKey);
+  }
   monthCache.set(monthKey, map);
   return map;
 };
