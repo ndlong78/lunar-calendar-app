@@ -70,6 +70,25 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// Auth-specific rate limiting (more strict)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 requests per window
+  message: 'Too many authentication attempts, please try again later',
+  standardHeaders: true,
+  skipSuccessfulRequests: true, // Don't count successful logins
+  handler: (req, res) => {
+    console.warn(`[AUTH_LIMIT] Blocked IP: ${req.ip} on ${req.path}`);
+    res.status(429).json({
+      message: 'Too many authentication attempts',
+      retryAfter: Math.ceil(15 * 60) // seconds
+    });
+  }
+});
+// Apply to auth routes
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
