@@ -1,5 +1,18 @@
+// backend/middleware/errorHandler.js
+
+// ➕ THÊM IMPORT
+const logger = require('../utils/logger');
+
 const errorHandler = (err, req, res, next) => {
-  console.error('Error:', err);
+  // ➕ THAY console.error BẰNG logger
+  logger.error('Error occurred', {
+    error: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    ip: req.ip,
+    userId: req.userId || 'anonymous'
+  });
 
   if (err.name === 'ValidationError') {
     return res.status(400).json({
