@@ -1,3 +1,36 @@
+const HEAVENLY_STEMS = ['Giáp', 'Ất', 'Bính', 'Đinh', 'Mậu', 'Kỷ', 'Canh', 'Tân', 'Nhâm', 'Quý'];
+const EARTHLY_BRANCHES = ['Tý', 'Sửu', 'Dần', 'Mão', 'Thìn', 'Tỵ', 'Ngọ', 'Mùi', 'Thân', 'Dậu', 'Tuất', 'Hợi'];
+
+const GOOD_HOURS_BY_DAY_BRANCH = {
+  'Tý': ['Dần', 'Mão', 'Thìn', 'Tỵ', 'Thân', 'Dậu'],
+  'Ngọ': ['Dần', 'Mão', 'Thìn', 'Tỵ', 'Thân', 'Dậu'],
+  'Sửu': ['Tý', 'Dần', 'Mão', 'Ngọ', 'Thân', 'Tuất'],
+  'Mùi': ['Tý', 'Dần', 'Mão', 'Ngọ', 'Thân', 'Tuất'],
+  'Dần': ['Tý', 'Sửu', 'Thìn', 'Tỵ', 'Mùi', 'Tuất'],
+  'Thân': ['Tý', 'Sửu', 'Thìn', 'Tỵ', 'Mùi', 'Tuất'],
+  'Mão': ['Tý', 'Dần', 'Mão', 'Ngọ', 'Mùi', 'Dậu'],
+  'Dậu': ['Tý', 'Dần', 'Mão', 'Ngọ', 'Mùi', 'Dậu'],
+  'Thìn': ['Sửu', 'Dần', 'Thìn', 'Ngọ', 'Thân', 'Dậu'],
+  'Tuất': ['Sửu', 'Dần', 'Thìn', 'Ngọ', 'Thân', 'Dậu'],
+  'Tỵ': ['Dần', 'Thìn', 'Tỵ', 'Thân', 'Dậu', 'Hợi'],
+  'Hợi': ['Dần', 'Thìn', 'Tỵ', 'Thân', 'Dậu', 'Hợi']
+};
+
+const HOUR_RANGES = {
+  'Tý': { vi: 'Tý (23:00-01:00)', en: 'Rat (11pm-1am)', start: '23:00', end: '01:00' },
+  'Sửu': { vi: 'Sửu (01:00-03:00)', en: 'Ox (1am-3am)', start: '01:00', end: '03:00' },
+  'Dần': { vi: 'Dần (03:00-05:00)', en: 'Tiger (3am-5am)', start: '03:00', end: '05:00' },
+  'Mão': { vi: 'Mão (05:00-07:00)', en: 'Rabbit (5am-7am)', start: '05:00', end: '07:00' },
+  'Thìn': { vi: 'Thìn (07:00-09:00)', en: 'Dragon (7am-9am)', start: '07:00', end: '09:00' },
+  'Tỵ': { vi: 'Tỵ (09:00-11:00)', en: 'Snake (9am-11am)', start: '09:00', end: '11:00' },
+  'Ngọ': { vi: 'Ngọ (11:00-13:00)', en: 'Horse (11am-1pm)', start: '11:00', end: '13:00' },
+  'Mùi': { vi: 'Mùi (13:00-15:00)', en: 'Goat (1pm-3pm)', start: '13:00', end: '15:00' },
+  'Thân': { vi: 'Thân (15:00-17:00)', en: 'Monkey (3pm-5pm)', start: '15:00', end: '17:00' },
+  'Dậu': { vi: 'Dậu (17:00-19:00)', en: 'Rooster (5pm-7pm)', start: '17:00', end: '19:00' },
+  'Tuất': { vi: 'Tuất (19:00-21:00)', en: 'Dog (7pm-9pm)', start: '19:00', end: '21:00' },
+  'Hợi': { vi: 'Hợi (21:00-23:00)', en: 'Pig (9pm-11pm)', start: '21:00', end: '23:00' }
+};
+
 class LunarCalendar {
   static TIMEZONE = 7.0; // Vietnam GMT+7
 
@@ -58,11 +91,21 @@ class LunarCalendar {
   }
 
   static getHeavenlyStemBranch(lunarYear) {
-    const stems = ['Giáp', 'Ất', 'Bính', 'Đinh', 'Mậu', 'Kỷ', 'Canh', 'Tân', 'Nhâm', 'Quý'];
-    const branches = ['Tý', 'Sửu', 'Dần', 'Mão', 'Thìn', 'Tỵ', 'Ngọ', 'Mùi', 'Thân', 'Dậu', 'Tuất', 'Hợi'];
-    const stem = stems[(lunarYear + 6) % 10];
-    const branch = branches[(lunarYear + 8) % 12];
+    const stem = HEAVENLY_STEMS[(lunarYear + 6) % 10];
+    const branch = EARTHLY_BRANCHES[(lunarYear + 8) % 12];
     return `${stem} ${branch}`;
+  }
+
+  static getDayCanChi(day, month, year) {
+    const jd = this.jdFromDate(day, month, year);
+    const stem = HEAVENLY_STEMS[(jd + 9) % 10];
+    const branch = EARTHLY_BRANCHES[(jd + 1) % 12];
+
+    return {
+      stem,
+      branch,
+      label: `${stem} ${branch}`
+    };
   }
 
   static getNewMoonDay(k, timeZone) {
@@ -198,10 +241,29 @@ class LunarCalendar {
   }
 
   static getZodiacAnimal(lunarYear) {
-    const animals = ['Tý', 'Sửu', 'Dần', 'Mão', 'Thìn', 'Tỵ',
-                     'Ngọ', 'Mùi', 'Thân', 'Dậu', 'Tuất', 'Hợi'];
     const index = ((lunarYear - 4) % 12 + 12) % 12; // 2008 (Mậu Tý) aligns with index 0
-    return animals[index];
+    return EARTHLY_BRANCHES[index];
+  }
+
+  static getAuspiciousHoursForDay(day, month, year, language = 'vi') {
+    const { branch } = this.getDayCanChi(day, month, year);
+    const goodBranches = GOOD_HOURS_BY_DAY_BRANCH[branch] || [];
+    const formatLabel = (hourBranch) => {
+      const info = HOUR_RANGES[hourBranch];
+      return {
+        branch: hourBranch,
+        label: language === 'vi' ? info.vi : info.en,
+        start: info.start,
+        end: info.end
+      };
+    };
+
+    const good = goodBranches.map(formatLabel);
+    const bad = EARTHLY_BRANCHES
+      .filter((hourBranch) => !goodBranches.includes(hourBranch))
+      .map(formatLabel);
+
+    return { branch, good, bad };
   }
 
   static getLunarMonthName(month) {

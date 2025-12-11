@@ -36,6 +36,11 @@ router.get('/convert', async (req, res, next) => {
     const lunarMonthName = LunarCalendar.getLunarMonthName(lunar.month);
     const lunarDayName = LunarCalendar.getLunarDayName(lunar.day);
     const canChiYear = LunarCalendar.getHeavenlyStemBranch(lunar.year);
+    const dayCanChi = LunarCalendar.getDayCanChi(day, month, year);
+    const auspiciousHours = {
+      vi: LunarCalendar.getAuspiciousHoursForDay(day, month, year, 'vi'),
+      en: LunarCalendar.getAuspiciousHoursForDay(day, month, year, 'en')
+    };
 
     res.json({
       solar: {
@@ -53,9 +58,11 @@ router.get('/convert', async (req, res, next) => {
         formatted: lunar.formatted,
         dayName: lunarDayName,
         monthName: lunarMonthName,
-        canChiYear
+        canChiYear,
+        dayCanChi
       },
       zodiacAnimal: zodiacAnimal,
+      auspiciousHours,
       accuracy: '99.9%'
     });
   } catch (error) {

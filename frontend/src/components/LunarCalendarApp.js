@@ -2,10 +2,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Globe, Heart, LogOut, LogIn } from 'lucide-react';
 import { authService } from '../services/authService';
 import { calendarService } from '../services/calendarService';
-import { AUSPICIOUS_HOURS, ZODIAC_ANIMALS, ZODIAC_SIGNS } from '../utils/constants';
+import { ZODIAC_ANIMALS, ZODIAC_SIGNS } from '../utils/constants';
 import {
   buildMonthlyLunarMap,
   formatDateKey,
+  getAuspiciousHoursForDate,
+  getDayCanChi,
   getDaysInMonth,
   getFirstDayOfMonth,
   getLunarKey,
@@ -437,6 +439,11 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
     ? ZODIAC_ANIMALS[((selectedLunar.year - 4) % 12 + 12) % 12]
     : selectedDetails?.zodiacAnimal;
   const selectedCanChiYear = selectedLunar?.canChiYear;
+  const dayCanChi = useMemo(() => selectedDate ? getDayCanChi(selectedDate) : null, [selectedDate]);
+  const auspiciousHours = useMemo(
+    () => selectedDate ? getAuspiciousHoursForDate(selectedDate, language) : { good: [], bad: [], dayBranch: null },
+    [selectedDate, language]
+  );
   const selectedZodiacSign = selectedDate ? getZodiacSign(selectedDate, ZODIAC_SIGNS) : null;
   const selectedZodiacInfo = selectedDetails?.zodiacInfo;
   const isFav = selectedDate ? isFavorite(selectedDate) : false;
@@ -444,11 +451,6 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
   const lunarMonthDisplay = selectedLunar?.monthName ? `${selectedLunar.monthName} (${selectedLunar.month})` : selectedLunar?.month;
   const zodiacDisplay = selectedCanChiYear || selectedZodiacAnimal || selectedDetails?.zodiacAnimal;
   const holidayForSelectedDate = selectedDate ? getHolidayForDate(selectedDate) : null;
-  const auspiciousHourList = Object.values(AUSPICIOUS_HOURS);
-  const auspiciousHours = {
-    good: auspiciousHourList.filter(hour => hour.auspicious).map(hour => hour[language === 'vi' ? 'vi' : 'en']),
-    bad: auspiciousHourList.filter(hour => !hour.auspicious).map(hour => hour[language === 'vi' ? 'vi' : 'en'])
-  };
   const zodiacEmoji = selectedZodiacAnimal ? ZODIAC_EMOJI[selectedZodiacAnimal] : '';
   const westernZodiacSymbol = selectedZodiacSign ? WESTERN_ZODIAC_SYMBOLS[selectedZodiacSign.vi] : '';
 
@@ -651,6 +653,13 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
                     <span className="section-icon">⭐</span>
                     <div>
                       <p className="detail-label">{t.auspiciousTitle}</p>
+                      {dayCanChi && (
+                        <p className="chip-label">
+                          {language === 'vi'
+                            ? `Ngày ${dayCanChi.label}`
+                            : `Day ${dayCanChi.label}`}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="hours-grid">
