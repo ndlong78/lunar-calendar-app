@@ -2,14 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Globe, Heart, LogOut, LogIn } from 'lucide-react';
 import { authService } from '../services/authService';
 import { calendarService } from '../services/calendarService';
-import { ZODIAC_ANIMALS, ZODIAC_SIGNS } from '../utils/constants';
+import { AUSPICIOUS_HOURS, ZODIAC_ANIMALS, ZODIAC_SIGNS } from '../utils/constants';
 import {
   buildMonthlyLunarMap,
   formatDateKey,
   getDaysInMonth,
   getFirstDayOfMonth,
   getLunarKey,
-  formatLunarDateVerbose,
   getZodiacSign,
   solarToLunar
 } from '../utils/lunarUtils';
@@ -46,6 +45,19 @@ const TEXTS = {
     removeFavorite: 'Bỏ Yêu Thích',
     loginRequired: 'Vui lòng đăng nhập để lưu ngày yêu thích',
     lunarVerbose: 'Âm lịch chi tiết',
+    holiday: 'Ngày Lễ',
+    lunarDay: 'Ngày',
+    lunarMonth: 'Tháng',
+    lunarYear: 'Năm',
+    lunarLeap: 'nhuận',
+    zodiacAnimal: 'Con giáp',
+    zodiacElement: 'Ngũ hành',
+    zodiacTraits: 'Đặc điểm',
+    zodiacPeriod: 'Giai đoạn',
+    canChiYear: 'Thiên Can Địa Chi',
+    auspiciousTitle: 'Giờ Hoàng Đạo hôm nay',
+    goodHours: 'Giờ tốt',
+    badHours: 'Giờ xấu',
   },
   en: {
     title: 'Vietnamese Lunar & Solar Calendar',
@@ -78,7 +90,50 @@ const TEXTS = {
     removeFavorite: 'Remove Favorite',
     loginRequired: 'Please login to save favorite dates',
     lunarVerbose: 'Lunar date breakdown',
+    holiday: 'Holiday',
+    lunarDay: 'Day',
+    lunarMonth: 'Month',
+    lunarYear: 'Year',
+    lunarLeap: 'leap',
+    zodiacAnimal: 'Zodiac animal',
+    zodiacElement: 'Element',
+    zodiacTraits: 'Traits',
+    zodiacPeriod: 'Period',
+    canChiYear: 'Heavenly Stem & Earthly Branch',
+    auspiciousTitle: 'Today\'s auspicious hours',
+    goodHours: 'Auspicious',
+    badHours: 'Inauspicious',
   }
+};
+
+const ZODIAC_EMOJI = {
+  'Tý': '🐭',
+  'Sửu': '🐮',
+  'Dần': '🐯',
+  'Mão': '🐰',
+  'Thìn': '🐲',
+  'Tỵ': '🐍',
+  'Ngọ': '🐴',
+  'Mùi': '🐏',
+  'Thân': '🐒',
+  'Dậu': '🐔',
+  'Tuất': '🐶',
+  'Hợi': '🐷'
+};
+
+const WESTERN_ZODIAC_SYMBOLS = {
+  'Bạch Dương': '♈',
+  'Kim Ngưu': '♉',
+  'Song Tử': '♊',
+  'Cự Giải': '♋',
+  'Sư Tử': '♌',
+  'Xử Nữ': '♍',
+  'Thiên Bình': '♎',
+  'Bọ Cạp': '♏',
+  'Nhân Mã': '♐',
+  'Ma Kết': '♑',
+  'Bảo Bình': '♒',
+  'Song Cá': '♓'
 };
 
 export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
@@ -385,10 +440,17 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
   const selectedZodiacSign = selectedDate ? getZodiacSign(selectedDate, ZODIAC_SIGNS) : null;
   const selectedZodiacInfo = selectedDetails?.zodiacInfo;
   const isFav = selectedDate ? isFavorite(selectedDate) : false;
-  const lunarVerbose = selectedLunar ? formatLunarDateVerbose(selectedLunar, language) : '';
   const lunarDayDisplay = selectedLunar?.dayName ? `${selectedLunar.dayName} (${selectedLunar.day})` : selectedLunar?.day;
   const lunarMonthDisplay = selectedLunar?.monthName ? `${selectedLunar.monthName} (${selectedLunar.month})` : selectedLunar?.month;
   const zodiacDisplay = selectedCanChiYear || selectedZodiacAnimal || selectedDetails?.zodiacAnimal;
+  const holidayForSelectedDate = selectedDate ? getHolidayForDate(selectedDate) : null;
+  const auspiciousHourList = Object.values(AUSPICIOUS_HOURS);
+  const auspiciousHours = {
+    good: auspiciousHourList.filter(hour => hour.auspicious).map(hour => hour[language === 'vi' ? 'vi' : 'en']),
+    bad: auspiciousHourList.filter(hour => !hour.auspicious).map(hour => hour[language === 'vi' ? 'vi' : 'en'])
+  };
+  const zodiacEmoji = selectedZodiacAnimal ? ZODIAC_EMOJI[selectedZodiacAnimal] : '';
+  const westernZodiacSymbol = selectedZodiacSign ? WESTERN_ZODIAC_SYMBOLS[selectedZodiacSign.vi] : '';
 
   return (
     <div className="app">
@@ -477,47 +539,148 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
             {loadingDetails ? (
               <p className="muted-text">{language === 'vi' ? 'Đang tải dữ liệu...' : 'Loading data...'}</p>
             ) : selectedDate ? (
-              <div className="details-grid">
-                <div className="detail-box">
-                  <p className="detail-label">{t.solar}</p>
-                  <p className="detail-value">
-                    {selectedDetails?.solar?.formatted || `${selectedDate.getDate()}/${selectedDate.getMonth() + 1}/${selectedDate.getFullYear()}`}
-                  </p>
-                </div>
-                <div className="detail-box">
-                  <p className="detail-label">{t.lunar}</p>
-                  <p className="detail-value">
-                    {lunarDayDisplay}/{lunarMonthDisplay}/{selectedLunar?.year}
-                  </p>
-                  {lunarVerbose && (
-                    <p className="detail-subtext">{t.lunarVerbose}: {lunarVerbose}</p>
-                  )}
-                </div>
-                <div className="detail-box">
-                  <p className="detail-label">{t.zodiacYear}</p>
-                  <p className="detail-value">{zodiacDisplay}</p>
-                  {selectedLunar?.year && (
-                    <p className="detail-subtext">{language === 'vi' ? `Năm âm: ${selectedLunar.year}` : `Lunar year: ${selectedLunar.year}`}</p>
-                  )}
-                  {selectedZodiacAnimal && selectedCanChiYear && (
-                    <p className="detail-subtext">{language === 'vi' ? `Con giáp: ${selectedZodiacAnimal}` : `Animal sign: ${selectedZodiacAnimal}`}</p>
-                  )}
-                  {selectedZodiacInfo?.element && (
-                    <p className="detail-subtext">{selectedZodiacInfo.element}</p>
-                  )}
-                </div>
-                <div className="detail-box">
-                  <p className="detail-label">{t.zodiacSignWestern}</p>
-                  <p className="detail-value">{selectedZodiacSign?.[language] || selectedZodiacSign?.name}</p>
-                  {selectedZodiacSign && (
-                    <p className="detail-subtext">{selectedZodiacSign.element}</p>
-                  )}
-                </div>
-                {selectedDetails?.notes && (
-                  <div className="detail-box detail-notes">
-                    <p className="detail-label">{language === 'vi' ? 'Ghi chú' : 'Notes'}</p>
-                    <p className="detail-description">{selectedDetails.notes}</p>
+              <div className="details-stack">
+                <section className="detail-section">
+                  <div className="section-heading">
+                    <span className="section-icon">📅</span>
+                    <div>
+                      <p className="detail-label">{t.solar}</p>
+                      <p className="date-large">
+                        {selectedDetails?.solar?.formatted || `${selectedDate.getDate()}/${selectedDate.getMonth() + 1}/${selectedDate.getFullYear()}`}
+                      </p>
+                    </div>
                   </div>
+                </section>
+
+                {holidayForSelectedDate && (
+                  <section className="detail-section holiday-banner">
+                    <div className="holiday-icon">🎉</div>
+                    <div>
+                      <p className="holiday-title">{language === 'vi' ? holidayForSelectedDate.name_vi : holidayForSelectedDate.name_en}</p>
+                      {holidayForSelectedDate.is_public_holiday && (
+                        <span className="badge-official">{language === 'vi' ? 'Ngày nghỉ chính thức' : 'Public holiday'}</span>
+                      )}
+                      <p className="holiday-meta">
+                        {holidayForSelectedDate.type === 'lunar'
+                          ? `🌙 ${t.lunar}: ${holidayForSelectedDate.lunarDate}`
+                          : `📅 ${t.solar}: ${holidayForSelectedDate.solarDate}`}
+                      </p>
+                    </div>
+                  </section>
+                )}
+
+                <section className="detail-section">
+                  <div className="section-heading">
+                    <span className="section-icon">🌙</span>
+                    <div>
+                      <p className="detail-label">{t.lunar}</p>
+                      <p className="detail-value emphasis">{`${lunarDayDisplay} / ${lunarMonthDisplay} / ${selectedLunar?.year}`}</p>
+                    </div>
+                  </div>
+                  <div className="lunar-grid">
+                    <div className="lunar-chip">
+                      <p className="chip-label">{t.lunarDay}</p>
+                      <p className="chip-value">{lunarDayDisplay}</p>
+                    </div>
+                    <div className="lunar-chip">
+                      <p className="chip-label">{t.lunarMonth}</p>
+                      <p className="chip-value">
+                        {lunarMonthDisplay}
+                        {selectedLunar?.leap && <span className="leap-badge">{t.lunarLeap}</span>}
+                      </p>
+                    </div>
+                    <div className="lunar-chip">
+                      <p className="chip-label">{t.lunarYear}</p>
+                      <p className="chip-value">{selectedLunar?.year}</p>
+                    </div>
+                  </div>
+                  {selectedCanChiYear && (
+                    <p className="detail-subtext canchi-row">🗓️ {t.canChiYear}: <strong>{selectedCanChiYear}</strong></p>
+                  )}
+                </section>
+
+                <section className="detail-section">
+                  <div className="section-heading">
+                    <span className="section-icon">🗓️</span>
+                    <div>
+                      <p className="detail-label">{t.zodiacYear}</p>
+                      <p className="detail-value emphasis">{zodiacDisplay}</p>
+                      {selectedZodiacAnimal && (
+                        <span className="zodiac-emoji">{zodiacEmoji} {selectedZodiacAnimal}</span>
+                      )}
+                    </div>
+                  </div>
+                  {selectedZodiacInfo && (
+                    <div className="zodiac-info-grid">
+                      <div>
+                        <p className="chip-label">{t.zodiacElement}</p>
+                        <p className="chip-value">{selectedZodiacInfo.element}</p>
+                      </div>
+                      <div>
+                        <p className="chip-label">{t.zodiacTraits}</p>
+                        <p className="chip-value">{selectedZodiacInfo.personality}</p>
+                      </div>
+                    </div>
+                  )}
+                </section>
+
+                {selectedZodiacSign && (
+                  <section className="detail-section">
+                    <div className="section-heading">
+                      <span className="section-icon">🔮</span>
+                      <div>
+                        <p className="detail-label">{t.zodiacSignWestern}</p>
+                        <p className="detail-value emphasis">{westernZodiacSymbol} {selectedZodiacSign[language] || selectedZodiacSign.name}</p>
+                      </div>
+                    </div>
+                    <div className="zodiac-info-grid">
+                      <div>
+                        <p className="chip-label">{t.zodiacElement}</p>
+                        <p className="chip-value">{selectedZodiacSign.element}</p>
+                      </div>
+                      <div>
+                        <p className="chip-label">{t.zodiacPeriod}</p>
+                        <p className="chip-value">{selectedZodiacSign.dates}</p>
+                      </div>
+                    </div>
+                  </section>
+                )}
+
+                <section className="detail-section">
+                  <div className="section-heading">
+                    <span className="section-icon">⭐</span>
+                    <div>
+                      <p className="detail-label">{t.auspiciousTitle}</p>
+                    </div>
+                  </div>
+                  <div className="hours-grid">
+                    <div>
+                      <p className="chip-label">✅ {t.goodHours}</p>
+                      <div className="hour-chips">
+                        {auspiciousHours.good.map((hour) => (
+                          <span key={hour} className="hour-badge good">🟢 {hour}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="chip-label">❌ {t.badHours}</p>
+                      <div className="hour-chips">
+                        {auspiciousHours.bad.map((hour) => (
+                          <span key={hour} className="hour-badge bad">🔴 {hour}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {selectedDetails?.notes && (
+                  <section className="detail-section">
+                    <div className="section-heading">
+                      <span className="section-icon">📝</span>
+                      <p className="detail-label">{language === 'vi' ? 'Ghi chú' : 'Notes'}</p>
+                    </div>
+                    <p className="detail-description">{selectedDetails.notes}</p>
+                  </section>
                 )}
               </div>
             ) : (
