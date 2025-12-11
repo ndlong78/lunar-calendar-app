@@ -57,6 +57,14 @@ class LunarCalendar {
     return Jd1 + C1 - deltat;
   }
 
+  static getHeavenlyStemBranch(lunarYear) {
+    const stems = ['Giáp', 'Ất', 'Bính', 'Đinh', 'Mậu', 'Kỷ', 'Canh', 'Tân', 'Nhâm', 'Quý'];
+    const branches = ['Tý', 'Sửu', 'Dần', 'Mão', 'Thìn', 'Tỵ', 'Ngọ', 'Mùi', 'Thân', 'Dậu', 'Tuất', 'Hợi'];
+    const stem = stems[(lunarYear + 6) % 10];
+    const branch = branches[(lunarYear + 8) % 12];
+    return `${stem} ${branch}`;
+  }
+
   static getNewMoonDay(k, timeZone) {
     return Math.floor(this.NewMoon(k) + 0.5 + timeZone / 24);
   }
@@ -148,7 +156,8 @@ class LunarCalendar {
       month: lunarMonth,
       year: lunarYear,
       leap: lunarLeap,
-      formatted: `${lunarDay}/${lunarMonth}/${lunarYear}`
+      formatted: `${lunarDay}/${lunarMonth}/${lunarYear}`,
+      canChiYear: LunarCalendar.getHeavenlyStemBranch(lunarYear)
     };
   }
 
@@ -191,8 +200,8 @@ class LunarCalendar {
   static getZodiacAnimal(lunarYear) {
     const animals = ['Tý', 'Sửu', 'Dần', 'Mão', 'Thìn', 'Tỵ',
                      'Ngọ', 'Mùi', 'Thân', 'Dậu', 'Tuất', 'Hợi'];
-    const index = (lunarYear - 2000) % 12;
-    return animals[(index + 12 * 100) % 12];
+    const index = ((lunarYear - 4) % 12 + 12) % 12; // 2008 (Mậu Tý) aligns with index 0
+    return animals[index];
   }
 
   static getLunarMonthName(month) {
