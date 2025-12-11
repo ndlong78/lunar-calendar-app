@@ -39,5 +39,9 @@ const holidaySchema = new mongoose.Schema({
     default: Date.now
   }
 });
+// Compound indexes for efficient filtering
+holidaySchema.index({ type: 1, active: 1 }); // For filtered queries
+holidaySchema.index({ active: 1, createdAt: -1 }); // For admin dashboard
+holidaySchema.index({ code: 1 }, { unique: true, sparse: true }); // Unique codes
 
 module.exports = mongoose.model('Holiday', holidaySchema);
