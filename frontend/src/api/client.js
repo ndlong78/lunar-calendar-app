@@ -20,12 +20,22 @@ const normalizeBaseURL = (rawUrl) => {
   }
 };
 
-const fallbackBaseURL =
-  process.env.NODE_ENV === 'production'
-    ? 'https://lunar-calendar-app.onrender.com/api'
-    : 'http://localhost:5000/api';
+const resolveBaseURL = () => {
+  const envBaseURL = normalizeBaseURL(process.env.REACT_APP_API_URL);
+  if (envBaseURL) return envBaseURL;
 
-const baseURL = normalizeBaseURL(process.env.REACT_APP_API_URL) || fallbackBaseURL;
+  // When frontend and backend are served from the same host (e.g., Render),
+  // prefer the current origin to avoid CORS and port mismatches.
+  if (process.env.NODE_ENV === 'production' && typeof window !== 'undefined') {
+    const sameOriginApi = `${window.location.origin}/api`;
+    return normalizeBaseURL(sameOriginApi);
+  }
+
+  // Local development fallback.
+  return normalizeBaseURL('http://localhost:5000/api');
+};
+
+const baseURL = resolveBaseURL();
 
 // Exported for non-axios consumers (e.g., fetch in offline helpers).
 export const API_BASE_URL = baseURL;
