@@ -120,6 +120,29 @@ REACT_APP_API_URL=http://localhost:5000/api
 REACT_APP_ENV=development
 ```
 
+### Tài khoản admin?
+
+Ứng dụng **không đi kèm tài khoản admin mặc định** để tránh lộ thông tin nhạy cảm. Bạn có hai cách tạo admin:
+
+1. Đăng ký người dùng mới qua API `/api/auth/register`, sau đó cập nhật trực tiếp trên MongoDB để gán `role: "admin"`:
+   ```bash
+   # Mongo shell / mongosh
+   use lunar-calendar
+   db.users.updateOne({ email: "your-admin@example.com" }, { $set: { role: "admin" } })
+   ```
+
+2. Hoặc chèn thẳng một bản ghi admin (nếu chưa có user):
+   ```bash
+   db.users.insertOne({
+     name: "Admin", 
+     email: "admin@example.com",
+     password: "<hash bcrypt>",
+     role: "admin"
+   })
+   ```
+
+Lưu ý: mật khẩu phải được hash bằng bcrypt (User model dùng bcrypt 10 rounds). Khi deploy thực tế, luôn đặt email/mật khẩu riêng cho từng môi trường và lưu trong secret manager, không commit lên repo.
+
 ---
 
 ## 🔑 API Endpoints
