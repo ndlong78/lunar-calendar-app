@@ -101,6 +101,13 @@ app.use((req, res) => {
 const HTTP_PORT = Number(process.env.PORT || process.env.HTTP_PORT || 80);
 const HTTPS_PORT = Number(process.env.HTTPS_PORT || 443);
 
+if (process.env.PORT && Number(process.env.PORT) !== 80 && !process.env.HTTP_PORT) {
+  console.warn(
+    `[PORT] Using platform-assigned PORT=${process.env.PORT}. External traffic on managed hosts (Render/Heroku) is still exposed over 80/443; ` +
+    'set HTTP_PORT/HTTPS_PORT or unset PORT when self-hosting if you need fixed ports.'
+  );
+}
+
 const httpServer = http.createServer(app);
 httpServer.listen(HTTP_PORT, () => {
   console.log(`HTTP server running on port ${HTTP_PORT}`);
