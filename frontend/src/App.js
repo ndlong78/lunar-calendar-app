@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import LunarCalendarApp from './components/LunarCalendarApp';
 import AdminDashboard from './components/AdminDashboard';
+import { authService } from './services/authService';
 
 function App() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -16,10 +17,16 @@ function App() {
     }
   }, []);
 
+  const handleLogout = () => {
+    authService.logout();
+    setUser(null);
+    setIsAdmin(false);
+  };
+
   return (
     <div>
       {isAdmin ? (
-        <AdminDashboard user={user} />
+        <AdminDashboard user={user} onLogout={handleLogout} />
       ) : (
         <LunarCalendarApp user={user} setUser={setUser} setIsAdmin={setIsAdmin} />
       )}
