@@ -28,18 +28,3 @@ export const VIETNAMESE_HOLIDAYS = {
   'lunar-3-10': { vi: 'Giỗ Tổ Hùng Vương', en: 'Hung Kings Festival', type: 'lunar' },
   'lunar-8-15': { vi: 'Tết Trung Thu', en: 'Mid-Autumn Festival', type: 'lunar' }
 };
-
-export const AUSPICIOUS_HOURS = {
-  0: { vi: 'Tý (23-1)', en: 'Rat (11pm-1am)', auspicious: true },
-  1: { vi: 'Sửu (1-3)', en: 'Ox (1am-3am)', auspicious: false },
-  2: { vi: 'Dần (3-5)', en: 'Tiger (3am-5am)', auspicious: true },
-  3: { vi: 'Mão (5-7)', en: 'Rabbit (5am-7am)', auspicious: false },
-  4: { vi: 'Thìn (7-9)', en: 'Dragon (7am-9am)', auspicious: true },
-  5: { vi: 'Tỵ (9-11)', en: 'Snake (9am-11am)', auspicious: false },
-  6: { vi: 'Ngọ (11-13)', en: 'Horse (11am-1pm)', auspicious: true },
-  7: { vi: 'Mùi (13-15)', en: 'Goat (1pm-3pm)', auspicious: false },
-  8: { vi: 'Thân (15-17)', en: 'Monkey (3pm-5pm)', auspicious: true },
-  9: { vi: 'Dậu (17-19)', en: 'Rooster (5pm-7pm)', auspicious: false },
-  10: { vi: 'Tuất (19-21)', en: 'Dog (7pm-9pm)', auspicious: true },
-  11: { vi: 'Hợi (21-23)', en: 'Pig (9pm-11pm)', auspicious: false }
-};
