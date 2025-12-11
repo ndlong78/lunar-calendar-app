@@ -19,6 +19,10 @@ if (!process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET must be defined');
 }
 
+if (process.env.JWT_SECRET.length < 32) {
+  throw new Error('JWT_SECRET must be at least 32 characters long');
+}
+
 // Trust proxy for Render
 app.set('trust proxy', 1);
 
@@ -37,17 +41,12 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow no origin (mobile apps, curl, etc)
     if (!origin) return callback(null, true);
-    
+
     // Allow exact matches
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    
-    // ✅ Allow any vercel.app subdomain
-    if (origin.endsWith('.vercel.app') || origin.endsWith('.vercel.dev')) {
-      return callback(null, true);
-    }
-    
+
     // Allow localhost for development
     if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
       return callback(null, true);

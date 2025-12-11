@@ -15,10 +15,17 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
-  return res.status(500).json({
-    message: err.message || 'Server error',
-    error: process.env.NODE_ENV === 'development' ? err : {}
-  });
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  const response = {
+    message: isProduction ? 'Internal server error' : err.message || 'Server error'
+  };
+
+  if (!isProduction) {
+    response.error = err;
+  }
+
+  return res.status(500).json(response);
 };
 
 module.exports = errorHandler;
