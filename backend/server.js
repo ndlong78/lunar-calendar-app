@@ -3,6 +3,9 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const http = require('http');
+const https = require('https');
+const fs = require('fs');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
@@ -80,9 +83,35 @@ app.use((req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 5000;
+const HTTP_PORT = Number(process.env.PORT || process.env.HTTP_PORT || 80);
+const HTTPS_PORT = Number(process.env.HTTPS_PORT || 443);
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+if (process.env.PORT && Number(process.env.PORT) !== 80 && !process.env.HTTP_PORT) {
+  console.warn(
+    `[PORT] Using platform-assigned PORT=${process.env.PORT}. External traffic on managed hosts (Render/Heroku) is still exposed over 80/443; ` +
+    'set HTTP_PORT/HTTPS_PORT or unset PORT when self-hosting if you need fixed ports.'
+  );
+}
+
+const httpServer = http.createServer(app);
+httpServer.listen(HTTP_PORT, () => {
+  console.log(`HTTP server running on port ${HTTP_PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
 });
+
+const httpsKeyPath = process.env.SSL_KEY_PATH;
+const httpsCertPath = process.env.SSL_CERT_PATH;
+
+if (httpsKeyPath && httpsCertPath && fs.existsSync(httpsKeyPath) && fs.existsSync(httpsCertPath)) {
+  const httpsOptions = {
+    key: fs.readFileSync(httpsKeyPath),
+    cert: fs.readFileSync(httpsCertPath)
+  };
+
+  const httpsServer = https.createServer(httpsOptions, app);
+  httpsServer.listen(HTTPS_PORT, () => {
+    console.log(`HTTPS server running on port ${HTTPS_PORT}`);
+  });
+} else {
+  console.warn('[HTTPS] SSL_KEY_PATH or SSL_CERT_PATH not provided/found. HTTPS listener is disabled.');
+}

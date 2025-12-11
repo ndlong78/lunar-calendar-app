@@ -112,6 +112,8 @@ NODE_ENV=development
 CORS_ORIGIN=http://localhost:3000
 ```
 
+**Lưu ý về cổng trên môi trường deploy (Render/Heroku):** các nền tảng này sẽ cấp giá trị `PORT` riêng (ví dụ 10000) và yêu cầu server bind đúng giá trị đó. Bên ngoài người dùng vẫn truy cập qua 80/443 của nhà cung cấp, nên log hiển thị port nội bộ khác là bình thường. Nếu tự host và muốn cố định 80/443, hãy bỏ `PORT` hoặc đặt `HTTP_PORT`/`HTTPS_PORT` trong `.env`.
+
 ### Frontend (.env)
 ```
 REACT_APP_API_URL=http://localhost:5000/api
