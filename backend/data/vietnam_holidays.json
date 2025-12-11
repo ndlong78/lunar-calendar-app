@@ -325,6 +325,17 @@
       "description_vi": "Ngày tưởng nhớ các Vua Hùng, theo luật lao động là một ngày nghỉ lễ chính thức.",
       "tags": ["quốc lễ", "tín ngưỡng", "ngày nghỉ chính thức"]
     },
+     {
+      "id": "VN_LUNAR_03_19_GIO_BA_NOI_CHIPBOBONG",
+      "calendar": "lunar",
+      "lunar_month": 3,
+      "lunar_day": 19,
+      "name_vi": "Giỗ Bà Nội của Chip Bông Bo",
+      "name_en": "Chip Bông Bo's Grandmother's Memorial Day",
+      "is_public_holiday": true,
+      "description_vi": "Ngày Giỗ Bà Nội của Chip Bông Bo.",
+      "tags": ["tình cảm", "tín ngưỡng", "ngày tưởng nhớ"]
+    },
     {
       "id": "VN_LUNAR_04_15_LE_PHAT_DAN",
       "calendar": "lunar",
