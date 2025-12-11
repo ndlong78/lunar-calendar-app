@@ -7,7 +7,7 @@ const http = require('http');
 const https = require('https');
 const fs = require('fs');
 require('dotenv').config();
-
+const logger = require('./utils/logger');
 const authRoutes = require('./routes/auth');
 const calendarRoutes = require('./routes/calendar');
 const favoritesRoutes = require('./routes/favorites');
