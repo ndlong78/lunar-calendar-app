@@ -35,6 +35,7 @@ router.get('/convert', async (req, res, next) => {
     const zodiacAnimal = LunarCalendar.getZodiacAnimal(lunar.year);
     const lunarMonthName = LunarCalendar.getLunarMonthName(lunar.month);
     const lunarDayName = LunarCalendar.getLunarDayName(lunar.day);
+    const canChiYear = LunarCalendar.getHeavenlyStemBranch(lunar.year);
 
     res.json({
       solar: {
@@ -48,9 +49,11 @@ router.get('/convert', async (req, res, next) => {
         year: lunar.year,
         month: lunar.month,
         day: lunar.day,
+        leap: lunar.leap,
         formatted: lunar.formatted,
         dayName: lunarDayName,
-        monthName: lunarMonthName
+        monthName: lunarMonthName,
+        canChiYear
       },
       zodiacAnimal: zodiacAnimal,
       accuracy: '99.9%'
