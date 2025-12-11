@@ -5,16 +5,39 @@ const { verifyToken } = require('../middleware/auth');
 const router = express.Router();
 
 // Get user favorites
+// Get user favorites with pagination
 router.get('/', verifyToken, async (req, res, next) => {
   try {
-    const favorites = await Favorite.find({ userId: req.userId })
-      .sort({ createdAt: -1 });
+    // Parse pagination params
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
+    const skip = (page - 1) * limit;
 
-    res.json({ favorites });
+    // Query with pagination
+    const [favorites, total] = await Promise.all([
+      Favorite.find({ userId: req.userId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(), // Faster read-only queries
+      Favorite.countDocuments({ userId: req.userId })
+    ]);
+
+    res.json({
+      favorites,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasMore: skip + favorites.length < total
+      }
+    });
   } catch (error) {
     next(error);
   }
 });
+
 
 const isValidIsoDate = value => {
   const isoRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -99,5 +122,6 @@ router.delete('/:id', verifyToken, async (req, res, next) => {
     next(error);
   }
 });
+
 
 module.exports = router;
