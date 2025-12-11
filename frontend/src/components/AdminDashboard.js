@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Settings, Users, Calendar, BarChart3, LogOut, Edit, Trash2, Plus, Search } from 'lucide-react';
 
-export default function AdminDashboard() {
-  const [currentUser] = useState({ name: 'Admin User', email: 'admin@lunar.com', role: 'Admin' });
+export default function AdminDashboard({ user, onLogout }) {
+  const currentUser = user || { name: 'Admin User', email: 'admin@lunar.com', role: 'Admin' };
   const [activeTab, setActiveTab] = useState('dashboard');
   const [users] = useState([
     { id: 1, name: 'Nguyễn Văn A', email: 'nguyena@example.com', joinDate: '2025-01-15', favorites: 12, status: 'Active' },
@@ -211,7 +211,10 @@ export default function AdminDashboard() {
             <p className="text-sm text-gray-400 mb-1">{t.hello}, {currentUser.name}</p>
             <p className="text-xs text-gray-500">{currentUser.email}</p>
           </div>
-          <button className="w-full flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition">
+          <button
+            onClick={onLogout}
+            className="w-full flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition"
+          >
             <LogOut size={18} />
             {t.logout}
           </button>
