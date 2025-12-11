@@ -47,9 +47,20 @@ app.use(cors({
       return callback(null, true);
     }
 
-    // Allow localhost for development
-    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
-      return callback(null, true);
+    // ➕ THÊM: Environment-aware localhost handling
+    if (process.env.NODE_ENV === 'development') {
+      // Development: Allow all localhost/127.0.0.1 ports
+      if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+        return callback(null, true);
+      }
+    } else {
+      // Production: Only allow specific localhost if needed (for testing)
+      const allowedLocalPorts = ['3000', '3001']; // Configure as needed
+      const localhostMatch = origin.match(/^http:\/\/(localhost|127\.0\.0\.1):(\d+)$/);
+      if (localhostMatch && allowedLocalPorts.includes(localhostMatch[2])) {
+        console.warn('[CORS] Allowing localhost in production:', origin);
+        return callback(null, true);
+      }
     }
     
     console.warn('[CORS] Rejected origin:', origin);
