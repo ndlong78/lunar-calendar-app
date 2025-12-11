@@ -35,9 +35,24 @@ console.log('[CONFIG] Allowed CORS origins:', allowedOrigins);
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow no origin (mobile apps, curl, etc)
+    if (!origin) return callback(null, true);
+    
+    // Allow exact matches
+    if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
+    
+    // ✅ Allow any vercel.app subdomain
+    if (origin.endsWith('.vercel.app') || origin.endsWith('.vercel.dev')) {
+      return callback(null, true);
+    }
+    
+    // Allow localhost for development
+    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+      return callback(null, true);
+    }
+    
     console.warn('[CORS] Rejected origin:', origin);
     return callback(new Error('Not allowed by CORS'));
   },
