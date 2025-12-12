@@ -101,6 +101,33 @@ Frontend sẽ chạy tại: `http://localhost:3000`
 
 ---
 
+## 🐳 Chạy Bằng Docker Compose
+
+### 1. Chuẩn Bị File Môi Trường
+```bash
+cp .env.docker.example .env
+# Cập nhật JWT_SECRET thành chuỗi bí mật >= 32 ký tự
+```
+
+### 2. Build & Run
+```bash
+docker compose up -d --build
+```
+
+### 3. Các Service & Cổng
+- **Frontend:** http://localhost:3000
+- **Backend API:** http://localhost:5000/api
+- **MongoDB:** mongodb://localhost:27017 (volume `mongo_data` được tạo tự động)
+
+### 4. Tắt Dịch Vụ
+```bash
+docker compose down
+```
+
+> Ghi chú: Cấu hình CORS và URL API có thể chỉnh trong `.env` trước khi chạy.
+
+---
+
 ## 📝 Environment Variables
 
 ### Backend (.env)
