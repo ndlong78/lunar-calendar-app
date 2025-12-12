@@ -440,10 +440,22 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
     : selectedDetails?.zodiacAnimal;
   const selectedCanChiYear = selectedLunar?.canChiYear;
   const dayCanChi = useMemo(() => selectedDate ? getDayCanChi(selectedDate) : null, [selectedDate]);
-  const auspiciousHours = useMemo(
-    () => selectedDate ? getAuspiciousHoursForDate(selectedDate, language) : { good: [], bad: [], dayBranch: null },
-    [selectedDate, language]
-  );
+  const auspiciousHours = useMemo(() => {
+    if (selectedDetails?.auspiciousHours) {
+      const hours = selectedDetails.auspiciousHours[language];
+      if (hours?.good || hours?.bad) {
+        return {
+          dayBranch: hours.branch,
+          good: hours.good || [],
+          bad: hours.bad || []
+        };
+      }
+    }
+
+    return selectedDate
+      ? getAuspiciousHoursForDate(selectedDate, language)
+      : { good: [], bad: [], dayBranch: null };
+  }, [language, selectedDate, selectedDetails?.auspiciousHours]);
   const selectedZodiacSign = selectedDate ? getZodiacSign(selectedDate, ZODIAC_SIGNS) : null;
   const selectedZodiacInfo = selectedDetails?.zodiacInfo;
   const isFav = selectedDate ? isFavorite(selectedDate) : false;
@@ -453,6 +465,15 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
   const holidayForSelectedDate = selectedDate ? getHolidayForDate(selectedDate) : null;
   const zodiacEmoji = selectedZodiacAnimal ? ZODIAC_EMOJI[selectedZodiacAnimal] : '';
   const westernZodiacSymbol = selectedZodiacSign ? WESTERN_ZODIAC_SYMBOLS[selectedZodiacSign.vi] : '';
+
+  const formatHourLabel = (hour) => {
+    if (!hour) return '';
+    const label = typeof hour === 'string' ? hour : (hour.label || hour.branch || '');
+    const start = typeof hour === 'string' ? null : hour.start;
+    const end = typeof hour === 'string' ? null : hour.end;
+    const timeRange = start && end ? ` (${start}-${end})` : '';
+    return `${label}${timeRange}`;
+  };
 
   return (
     <div className="app">
@@ -667,17 +688,25 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
                     <div>
                       <p className="chip-label">✅ {t.goodHours}</p>
                       <div className="hour-chips">
-                        {auspiciousHours.good.map((hour) => (
-                          <span key={hour} className="hour-badge good">🟢 {hour}</span>
-                        ))}
+                        {auspiciousHours.good.map((hour) => {
+                          const label = formatHourLabel(hour);
+                          const key = typeof hour === 'string' ? hour : (hour.branch || label);
+                          return (
+                            <span key={key} className="hour-badge good">🟢 {label}</span>
+                          );
+                        })}
                       </div>
                     </div>
                     <div>
                       <p className="chip-label">❌ {t.badHours}</p>
                       <div className="hour-chips">
-                        {auspiciousHours.bad.map((hour) => (
-                          <span key={hour} className="hour-badge bad">🔴 {hour}</span>
-                        ))}
+                        {auspiciousHours.bad.map((hour) => {
+                          const label = formatHourLabel(hour);
+                          const key = typeof hour === 'string' ? hour : (hour.branch || label);
+                          return (
+                            <span key={key} className="hour-badge bad">🔴 {label}</span>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
