@@ -440,20 +440,10 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
     : selectedDetails?.zodiacAnimal;
   const selectedCanChiYear = selectedLunar?.canChiYear;
   const dayCanChi = useMemo(() => selectedDate ? getDayCanChi(selectedDate) : null, [selectedDate]);
-  const auspiciousHours = useMemo(() => {
-    if (!selectedDate) return { good: [], bad: [], dayBranch: null };
-
-    const apiHours = selectedDetails?.auspiciousHours?.[language];
-    if (apiHours?.good && apiHours?.bad) {
-      return {
-        dayBranch: apiHours.branch,
-        good: apiHours.good.map(({ label }) => label),
-        bad: apiHours.bad.map(({ label }) => label)
-      };
-    }
-
-    return getAuspiciousHoursForDate(selectedDate, language);
-  }, [language, selectedDate, selectedDetails]);
+  const auspiciousHours = useMemo(
+    () => selectedDate ? getAuspiciousHoursForDate(selectedDate, language) : { good: [], bad: [], dayBranch: null },
+    [selectedDate, language]
+  );
   const selectedZodiacSign = selectedDate ? getZodiacSign(selectedDate, ZODIAC_SIGNS) : null;
   const selectedZodiacInfo = selectedDetails?.zodiacInfo;
   const isFav = selectedDate ? isFavorite(selectedDate) : false;
