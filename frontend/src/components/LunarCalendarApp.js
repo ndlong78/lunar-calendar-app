@@ -572,6 +572,13 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
                 )}
 
                 <section className="detail-section">
+                   <div className="section-heading">
+                    <span className="section-icon">🌙</span>
+                    <div>
+                      <p className="detail-label">{t.lunar}</p>
+                      
+                    </div>
+                  </div>
                   
                   <div className="lunar-grid">
                     <div className="lunar-chip">
