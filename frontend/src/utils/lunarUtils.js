@@ -266,7 +266,13 @@ export const getAuspiciousHoursForDate = (date, language = 'vi') => {
 
   const formatLabel = (hourBranch) => {
     const info = HOUR_RANGES[hourBranch];
-    return info ? (language === 'vi' ? info.vi : info.en) : hourBranch;
+    const label = info ? (language === 'vi' ? info.vi : info.en) : hourBranch;
+    return {
+      branch: hourBranch,
+      label,
+      start: info?.start,
+      end: info?.end
+    };
   };
 
   const good = goodBranches.map(formatLabel);
