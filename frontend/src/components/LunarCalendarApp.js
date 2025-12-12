@@ -576,7 +576,8 @@ export default function LunarCalendarApp({ user, setUser, setIsAdmin }) {
                     <span className="section-icon">🌙</span>
                     <div>
                       <p className="detail-label">{t.lunar}</p>
-                      <p className="detail-value emphasis">{`${lunarDayDisplay} / ${lunarMonthDisplay} / ${selectedLunar?.year}`}</p>
+                      //<p className="detail-value emphasis">{`${lunarDayDisplay} / ${lunarMonthDisplay} / ${selectedLunar?.year}`}</p>//
+                      <p className="detail-value emphasis">{`${selectedLunar?.day} / ${selectedLunar?.month} / ${selectedLunar?.year}`}</p>
                     </div>
                   </div>
                   <div className="lunar-grid">
